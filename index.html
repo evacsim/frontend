@@ -1,3 +1,20 @@
+<!DOCTYPE html>
 <html>
-akjsalfd
+<head>
+<link rel="stylesheet" href="style.css">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjNUH0oGxSMGagudvTMVfXSTQKwi7wWlw&sensor=TRUE" type="text/javascript"></script>
+<script src="./evacsim.js" type="text/javascript"></script>
+<script src="./main.js" type="text/javascript">
+
+    </script>
+</head>
+<body>
+<button style="position: absolute; width: 100px; height: 100px; background-color: #ffcccc; z-index: 1000; display: block;" onclick="evacSim.start();">start</button>
+<button style="position: absolute;left: 200px; width: 100px; height: 100px; background-color: #ffcccc; z-index: 1000; display: block;" onclick="drone.remove();">drone bye</button>
+<button style="position: absolute;left: 400px; width: 100px; height: 100px; background-color: #ffcccc; z-index: 1000; display: block;" onclick="evacSim.showNodes();">ways</button>
+<div id="map_canvas"></div>
+
+</body>
 </html>

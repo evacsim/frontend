@@ -1,0 +1,69 @@
+evacSim.showWays()
+	道路を全てGoogle Map上に表示
+	戻り値: なし 
+
+evacSim.hideWays()
+	Google Map上の道路を全て非表示
+	戻り値: なし
+
+evacSim.getNeighbors(nodeId or object)
+	引数のnodeIdのnodeに隣接するnodeのidを配列で返す
+	戻り値: Array ex) [10000, 10001, ...]
+
+evacSim.getAlt(nodeId or object)
+	引数のnodeIdのnodeの高度を返す
+	戻り値: number
+
+evacSim.calcDistance(obj1,obj2)
+	引数で与えられたobjectまたはnodeの距離を計算し、メートル単位で返す。
+	2つの引数はどちらもnode_id、evac_objectの両方をとることができる。
+	ex) evacSim.calsDistance(1234567,cars[2])
+	戻り値: number
+
+evacSim.calcDirection(obj1,obj2)
+	obj1からみたobj2の角度の単位ベクトルを返す
+	2つの引数はどちらもnode_id、evac_objectの両方をとることができる。
+	戻り値: object (lat: 緯度, lon: 経度)
+
+evacSim.start()
+	シミュレータを起動する。
+	戻り値: なし
+
+evacSim.stop()
+	シミュレータを停止する。
+	戻り値: なし
+
+evacSim.createObject(constructorFunc,arg1,arg2,...)
+evacSim.createObject(object)
+	evacSim用のオブジェクトevacObjectを生成し、evacObjectを返す。
+
+evacSim.eachStep(func)
+	毎ステップでの処理をevacSimに指定する。
+
+------------------------------------------------------------------------
+
+
+evacObject.setLat(latitude) / evacObject.getLat()
+	緯度を設定/取得
+
+evacObject.setLon(longitude) / evacObject.getLon()
+	経度を設定/取得
+
+
+evacObject.setNodeId(id) / evacObject.getNodeId()
+	nodeIDを設定/取得
+
+evacObject.add()
+	地図上にオブジェクトを表示させる
+	戻り値: evacObject
+
+evacObject.remove()
+	地図上のオブジェクトを取り除く。オブジェクトのデータ自体は残るため、add()で復活させることが可能
+	戻り値: evacObject
+
+evacObject.addToLat(l)
+	引数の値を緯度に加える
+
+evacObject.addToLon(l)
+	引数の値を経度に加える
+
