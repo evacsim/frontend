@@ -1,3 +1,4 @@
+
 var evacSim = new (function () {
 	var gMap;
 	var nodes;
@@ -6,37 +7,49 @@ var evacSim = new (function () {
 	var wayIdToIndex = [];
 
 	var objs = [];
-	var objMarkers = [];
+	var emptyObjIds = [];
+	var objIcons = [];
+	var objLabels = [];
+	var deadObjs = [];
+
+	var objGMarkers = [];
+	var objGLabels = [];
+
 	var wayLines = [];
 	var nodeMarkers = [];
 
-	var emptyObjIds = [];
 	var eachStepFunc;
 	var timer = null;
 
 	var isInitialized = false;
 	var objInitFuncs = [];
+	var objReadyFuncs = [];
 
 	var R_EARTH = 6378137; // 地球半径
 
 // 設定
 	var timeStep = 100;
-	var nodesUrl = "a_star/nodes.cgi";
-	var waysUrl = "a_star/ways.cgi";
-//	var nodesUrl = "nodes.json";
-//	var waysUrl = "ways.json";
+	var nodesUrl = "nodes.json";
+	var waysUrl = "ways.json";
 	var mapCenterLat = 32.695528;
 	var mapCenterLon = 128.840861;
 	var domId = "map_canvas";
 
 
-	function initGMap() {
+	function initGMap(_callback) {
+		var dfd = new $.Deferred;
+
 		var mapOptions = {
 			center: new google.maps.LatLng(mapCenterLat,mapCenterLon),
 			zoom: 12,
 			mapTypeId: google.maps.MapTypeId.ROADMAP
 		};
 		gMap = new google.maps.Map(document.getElementById(domId), mapOptions);
+		google.maps.event.addListenerOnce(gMap, 'idle', function () {
+			dfd.resolve();
+		});
+
+		return dfd.promise();
 	}
 
 	function initData() {
@@ -108,9 +121,6 @@ var evacSim = new (function () {
 
 	this.showNodes = function () {
 		for (var i=0; i<nodes.length; i++) {
-		//	nodeMarkers[i] = new google.maps.Marker({
-		//		position: new google.maps.LatLng(nodes[i].lat, nodes[i].lon)
-		//	});
 			nodeMarkers[i] = new google.maps.Marker({
 				position: new google.maps.LatLng(nodes[i].lat, nodes[i].lon)
 			});
@@ -133,29 +143,10 @@ var evacSim = new (function () {
 	};
 
 	function getNode(obj) {
-		// try {		
-		// 	// if (!isInitialized) {
-		// 	// 	throw("初期化前に実行することは出来ません");
-		// 	// }
-		// 	if ((typeof obj == "string") || (typeof obj == "number")) { // 引数がidの場合
-		// 		if (!(obj in nodeIdToIndex)) { throw(obj+"は無効なnodeIdです"); } // 無効なidの場合を除外
-		// 		return nodes[nodeIdToIndex[obj]];
-		// 	} else if (typeof obj == "object") {
-		// 		if (!("getNodeId" in obj)) { throw(obj+"は無効なオブジェクトです"); }
-		// 		if (!(obj.getNodeId() in nodeIdToIndex)) { throw("オブジェクトのnodeIdが未定義または無効です。"); }
-		// 		return nodes[nodeIdToIndex[obj.getNodeId()]];
-		// 	} else {
-		// 		throw("無効な引数です");
-		// 	}
 
-		// } catch(errMsg) {
-		// 	console.warn("Internal error in getNode(): " + errMsg);
-		// 	return null;
-		// }
-
-
-
-		if ((typeof obj == "string") || (typeof obj == "number")) { // 引数がidの場合
+		if (obj == null) {
+			return null;
+		} else if ((typeof obj == "string") || (typeof obj == "number")) { // 引数がidの場合
 			if (obj in nodeIdToIndex) {  // 無効なidの場合を除外
 				return nodes[nodeIdToIndex[obj]];
 			} else {
@@ -217,7 +208,10 @@ var evacSim = new (function () {
 				lat1 = obj1.getLat();
 				lon1 = obj1.getLon();
 
+			} else {
+				throw("無効な第1引数です")
 			}
+
 			if ((typeof obj2 == "string") || (typeof obj2 == "number")) { // 引数がidの場合
 				if (!(obj2 in nodeIdToIndex)) { throw("第2引数のnodeIdは無効です"); } // 無効なidの場合を除外
 				lat2 = nodes[nodeIdToIndex[obj2]].lat;
@@ -228,11 +222,17 @@ var evacSim = new (function () {
 				// lon2 = obj2.lon;
 				lat2 = obj2.getLat();
 				lon2 = obj2.getLon();
+			} else {
+				throw("無効な第2引数です")
 			}
 
-			dLat = lat2-lat1;
-			dLon = lon2-lon1;
-			return Math.sqrt(Math.pow(this.latToMeter(dLat),2)+Math.pow(this.lonToMeter(dLon),2) );
+			if ( ((lat1 != null) && (lat2 != null)) && ((lon1 != null) && (lon2 != null)) ) {
+				dLat = lat2-lat1;
+				dLon = lon2-lon1;
+				return Math.sqrt(Math.pow(this.latToMeter(dLat),2)+Math.pow(this.lonToMeter(dLon),2) );
+			} else {
+				return 2*R_EARTH*Math.PI; // 通常使用し得ない大きな値(地球の外周)
+			}
 
 		} catch (errMsg) {
 			console.warn("calcDistance(): "+errMsg);
@@ -259,7 +259,10 @@ var evacSim = new (function () {
 				// lon1 = obj1.lon;
 				lat1 = obj1.getLat();
 				lon1 = obj1.getLon();
+			} else {
+				throw("無効な第1引数です")
 			}
+
 			if ((typeof obj2 == "string") || (typeof obj2 == "number")) { // 引数がidの場合
 				if (!(obj2 in nodeIdToIndex)) { throw("第2引数のnodeIdは無効です"); } // 無効なidの場合を除外
 				lat2 = nodes[nodeIdToIndex[obj2]].lat;
@@ -270,16 +273,25 @@ var evacSim = new (function () {
 				// lon2 = obj2.lon;
 				lat2 = obj2.getLat();
 				lon2 = obj2.getLon();
+			} else {
+				throw("無効な第2引数です")
 			}
 
-			vLat = this.latToMeter(lat2-lat1);
-			vLon = this.lonToMeter(lon2-lon1);
-			nv = Math.sqrt(Math.pow(vLat,2)+Math.pow(vLon,2));
+			if ((lat1 != null) && (lat2 != null) && (lon1 != null) && (lon2 != null)) {
+				vLat = this.latToMeter(lat2-lat1);
+				vLon = this.lonToMeter(lon2-lon1);
+				nv = Math.sqrt(Math.pow(vLat,2)+Math.pow(vLon,2));
+				return {
+					lat: vLat/nv,
+					lon: vLon/nv
+				};
+			} else {
+				return {
+					lat: 0,
+					lon: 0
+				}
+			}
 
-			return {
-				lat: vLat/nv,
-				lon: vLon/nv
-			};
 		} catch (errMsg) {
 			console.warn("calcDirection(): "+errMsg);
 			return {
@@ -336,131 +348,139 @@ var evacSim = new (function () {
 	};
 
 
-	this.createObject = function () {
 
-		var baseObj = (function () {
-			var id;
-			var isAdded = false;
+	var baseObject = function (_id) {
+		var id = _id;
+		// var isAdded = false;
+		var isAdded = true;
 
-			var lat = mapCenterLat;
-			var lon = mapCenterLon;
-			var nodeId = null;
-			var icon = null;
+		var lat = mapCenterLat;
+		var lon = mapCenterLon;
+		var nodeId = null;
+		var icon = null;
 
-			return {
-				setLat: function (_lat) {
-					lat = _lat;
-					return this;
-				},
-				setLon: function (_lon) {
-					lon = _lon;
-					return this;
-				},
-				getLat: function () {
-					return lat;
-				},
-				getLon: function () {
-					return lon;
-				},
-				setNodeId: function (_nodeId) {
-					nodeId = _nodeId;
+		return {
+			setLat: function (_lat) {
+				lat = _lat;
+				return this;
+			},
+			setLon: function (_lon) {
+				lon = _lon;
+				return this;
+			},
+			getLat: function () {
+				return lat;
+			},
+			getLon: function () {
+				return lon;
+			},
+			setNodeId: function (_nodeId) {
+				nodeId = _nodeId;
 
-	// if (isInitialized) {
-					var node = getNode(nodeId);
-		// if (node) {
+				var node = getNode(nodeId);
+				if (node) {
 					this.setLat(node.lat);
 					this.setLon(node.lon);
-		// } else {
-		// 	console.warn("setNodeId: 無効なnodeIdです。")
-		// }
-	// }
-					return this;
-				},
-				getNodeId: function () {
-					return nodeId;
-				},
-				addToLat: function (dLat) {
-	// lat += this.meterToLat(l);
-					lat += dLat;
-				},
-				addToLon: function (dLon) {
-	// lon += this.meterToLon(l);
-					lon += dLon;
-				},
-				add: function () {
-					if (!isAdded) {
-						id = addObject(this);
-						isAdded = true;
-					}
-					return this;
-				},
-				remove: function () {
-					if (isAdded) {
-						removeObject(id);
-						isAdded = false;
-					}
-					return this;
-				},
-				setIcon: function (_icon,sizeX,sizeY) {
-//					icon = _icon;
-
-if (typeof _icon == "object") {
-	icon = _icon;
-} else if (typeof _icon == "string") {
-	if (sizeX && sizeY) {
-		icon = {
-			url: _icon,                     // url
-			scaledSize: new google.maps.Size(sizeX,sizeY)
-		};
-	} else {
-		icon = _icon;
-	}
-} else {
-	console.warn("setIcon(): 無効な引数です")
-}
-					return this;
-				},
-				getIcon: function () {
-					return icon;
+				} else {
+					console.warn("setNodeId: 無効なnodeIdです。")
 				}
-				// addToLat: function (l) {
-				// 	this.lat += meterToLat(l);
-				// },
-				// addToLon: function (l) {
-				// 	this.lon += meterToLon(l);
-				// },
-				// setNodeId: function (nodeId) {
-				// 	var node = getNode(nodeId);
-				// 	if (node) {
-				// 		this.lat = node.lat;
-				// 		this.lon = node.lon;
-				// 		this.nodeId = nodeId;
-				// 	} else {
-						
-				// 	}
-				// },
-				// lat: 0,
-				// lon: 0,
-				// nodeId: null
-			};
-		})();
+				return this;
+			},
+			getNodeId: function () {
+				return nodeId;
+			},
+			addToLat: function (dLat) {
+				lat += dLat;
+			},
+			addToLon: function (dLon) {
+				lon += dLon;
+			},
+			add: function () {
+				return this;
+			},
+			remove: function () {
+				if (isAdded) {
+					registerDeadObject(id);
+					isAdded = false;
+				}
+				return this;
+			},
+			setIcon: function (_icon,sizeX,sizeY) {
+				if (typeof _icon == "object") {
+					// icon = _icon;
+					setIcon(_icon,id);
+				} else if (typeof _icon == "string") {
+					if (sizeX && sizeY) {
+						// icon = {
+						// 	url: _icon,                     // url
+						// 	scaledSize: new google.maps.Size(sizeX,sizeY)
+						// };
+						setIcon({
+							url: _icon,                     // url
+							scaledSize: new google.maps.Size(sizeX,sizeY)
+						},id);
+					} else {
+						// icon = _icon;
+						setIcon(_icon,id);
+					}
+				} else {
+					console.warn("setIcon(): 無効な引数です")
+				}
+				return this;
+			},
+			setLabel: function (_dom,_width,_height) {
 
+				var label = {};
+
+				if (_dom) {
+					label.dom = _dom;
+				} else {
+					label.dom = "";
+				}
+				if (_width) {
+					label.width = _width;
+				}
+				if (_height) {
+					label.height = _height;
+				}
+
+
+				setLabel(label,id);
+			}
+		};
+	};
+
+
+
+	this.createObject = function () {
+		var id = getNewObjId();
+
+		var baseObj = new baseObject(id);
 
 		var _const = arguments[0];
 		var args = Array.prototype.slice.call(arguments,1,arguments.length);
-
+		var obj;
 		try {
 			if (typeof _const == "function") {
 
-				var obj = $.extend({},baseObj, new _const());
+				obj = $.extend({},baseObj, new _const());
+
+				setIcon(null,id);
+				setLabel(null,id);
 
 				if(isInitialized) {
-					obj.init.apply(obj,args);
+					obj.init? obj.init.apply(obj,args) : false;
+					obj.ready? obj.ready() : false;
 				} else {
 					objInitFuncs[objInitFuncs.length] = function () {
-						obj.init.apply(obj,args);
+						obj.init? obj.init.apply(obj,args) : false;
 					};
+					objReadyFuncs[objReadyFuncs.length] = function () {
+						obj.ready? obj.ready() : false;
+					}
 				}
+
+				addObject(obj,id);
 				return obj;
 			} else {
 				throw("無効な引数です");
@@ -470,9 +490,11 @@ if (typeof _icon == "object") {
 			return null;
 		}
 
+
+
 	};
 
-	function addObject (obj) {
+	function getNewObjId () {
 		var id;
 		if (emptyObjIds.length) {
 			id = emptyObjIds[emptyObjIds.length-1];
@@ -480,18 +502,56 @@ if (typeof _icon == "object") {
 		} else {
 			id = objs.length;
 		}
-		objs[id] = obj;
 		return id;
 	}
 
-	function removeObject(id) {
-		objs[id] = null;
-		emptyObjIds[emptyObjIds.length] = id;
+
+	function addObject (obj,id) {
+		objs[id] = obj;
 	}
 
-	this.eachStep = function (func) {
+	function setIcon(icon,id) {
+		objIcons[id] = icon;
+	}
+
+	function getIcon(id) {
+		return objIcons[id];
+	}
+
+	function setLabel(label,id) {
+		objLabels[id] = label;
+	}
+
+	function getLabel(id) {
+		return objLabels[id];
+	}
+
+	function registerDeadObject(id) { // deadリストに登録
+		deadObjs[deadObjs.length] = id;
+	}
+
+	function killObjects() { // deadリストのオブジェクトを無効にし、オブジェクトリストから除外
+
+		for (var i=0,l=deadObjs.length; i<l; i++) {
+			disableObject(objs[deadObjs[i]]);
+			objs[deadObjs[i]] = null;
+			emptyObjIds[emptyObjIds.length] = deadObjs[i];
+		}
+		deadObjs = [];
+	}
+
+	function disableObject(obj) {
+		for (var key in obj) {
+			if (typeof obj[key] == "function") {
+				obj[key] = function () { return null; }
+			}
+		}
+	}
+
+	this.eachStep = function (func,_timeStep) {
 		eachStepFunc = function () {
 			func();
+			killObjects();
 
 			try {
 				var status = setLatLonById();
@@ -502,23 +562,12 @@ if (typeof _icon == "object") {
 			// idToLatLon(); // idで位置を指定しているオブジェクトに緯度経度を与える
 			refreshGMap();
 		};
+		if (_timeStep) {
+			timeStep = _timeStep;
+		}
 	};
 
 	function setLatLonById() {
-		// var index;
-		// for (var i=0; i<objs.length; i++) {
-		// 	if (objs[i]){ // オブジェクトが存在する場合
-		// 		// マーカーの座標オブジェクトを生成
-		// 		if (objs[i].getNodeId() in nodeIdToIndex) {
-		// 			index = nodeIdToIndex[objs[i].getNodeId()];
-		// 			// objs[i].lat = nodes[index].lat;
-		// 			// objs[i].lon = nodes[index].lon;
-		// 			objs[i].setLat(nodes[index].lat);
-		// 			objs[i].setLon(nodes[index].lon);
-		// 		}
-		// 	}
-		// }
-
 		try {
 			for (var i=0; i<objs.length; i++) {
 				if (objs[i]){ // オブジェクトが存在する場合
@@ -548,126 +597,121 @@ if (typeof _icon == "object") {
 		var gMapLatLng, index;
 		for (var i=0; i<objs.length; i++) {
 			if (objs[i]){ // オブジェクトが存在する場合
-				// マーカーの座標オブジェクトを生成
-
-				// if (objs[i].nodeId) {
-				// 	index = nodeIdToIndex[objs[i].nodeId];
-				// 	gMapLatLng = new google.maps.LatLng(nodes[index].lat, nodes[index].lon);
-				// } else {
-//				var gMapLatLng = new google.maps.LatLng(objs[i].lat, objs[i].lon);
 				var gMapLatLng = new google.maps.LatLng(objs[i].getLat(), objs[i].getLon());
-				// }
-				if (!objMarkers[i]) { //　マーカーが無ければ生成
+				if (!objGMarkers[i]) { //　マーカーが無ければ生成
 
-					objMarkers[i] = new google.maps.Marker({
+					// objGMarkers[i] = new google.maps.Marker({
+					// 	position: gMapLatLng,
+					// 	icon: objs[i].getIcon()
+					// });
+					objGMarkers[i] = new google.maps.Marker({
 						position: gMapLatLng,
-						icon: objs[i].getIcon()
+						icon: getIcon(i)
 					});
-					objMarkers[i].setMap(gMap);
+
+					if (typeof objs[i].click == "function") {
+						(function (obj){
+							google.maps.event.addListener(objGMarkers[i], 'click', function (gMapEvent) {
+								obj.click.call(obj,gMapEvent);
+							});
+						})(objs[i]);
+					}
+
+					objGMarkers[i].setMap(gMap);
 				} else {
-					objMarkers[i].setPosition(gMapLatLng);
+					objGMarkers[i].setPosition(gMapLatLng);
+					objGMarkers[i].setIcon(getIcon(i));
 				}
+
+				if (!objGLabels[i]) {
+					objGLabels[i] = new GMapLabel({
+						position: gMapLatLng,
+						label: getLabel(i)
+					});
+					objGLabels[i].setMap(gMap);
+				} else {
+					objGLabels[i].setPosition(gMapLatLng);
+					objGLabels[i].setLabel(getLabel(i));
+				}
+
+
 			} else { // オブジェクトが存在しない場合
-				if (objMarkers[i]) {　// マーカーがあれば削除
-					objMarkers[i].setMap(null);
-					objMarkers[i] = null;
+				if (objGMarkers[i]) {　// マーカーがあれば削除
+					objGMarkers[i].setMap(null);
+					objGMarkers[i] = null;
+				}
+				if (objGLabels[i]) {
+					objGLabels[i].setMap(null);
+					objGLabels[i] = null;
 				}
 			}
 		}
 	}
+
+	function GMapLabel(_options) {
+		var position = _options.position ? _options.position : null;
+
+		var label = {
+			dom: "",
+			width: 100,
+			height: 100
+		}
+		$.extend(label,_options.label);
+
+		var wrapper;
+		var dom = null;
+		this.onAdd = function () {
+			wrapper = document.createElement('div');
+			// div.style.border = "none";
+			// div.style.borderWidth = "0px";
+			wrapper.style.position = "absolute";
+			wrapper.style.textAlign = "center";
+			var panes = this.getPanes().floatPane.appendChild(wrapper);
+		};
+		this.draw = function () {
+			var overlayProjection = this.getProjection();
+			var pos = overlayProjection.fromLatLngToDivPixel(position);
+
+
+			wrapper.style.width = label.width + "px";
+			wrapper.style.height = label.height + "px";
+			wrapper.style.top = pos.y+"px";
+			wrapper.style.left = (pos.x - label.width/2)+"px";
+
+			if (typeof label.dom != "object") {
+				wrapper.innerHTML = label.dom;
+			} else {
+				$(wrapper).empty();
+				$(wrapper).append(label.dom);
+			}
+		};
+		this.setPosition = function (_position) {
+			position = _position;
+			this.draw();
+		};
+		this.setLabel = function (_label) {
+
+			$.extend(label, _label);
+
+			this.draw();
+		};
+		this.refresh = function (_position) {
+			position = _position;
+			this.draw();
+		};
+
+		this.onRemove = function() {
+			wrapper.parentNode.removeChild(wrapper);
+			wrapper = null;
+		}
+
+
+	}
+	GMapLabel.prototype = new google.maps.OverlayView();
+
+
 	this.refresh = refreshGMap;　// 手動でマップをリフレッシュする為の関数
 
-// 	this.aStar = function (_start,_goal) {
-	
-// 		function aStar() {
-// 			this.status = true;
-// 			this.id;
-// 			this.cost;
-// 			this.before = null;
-// 		}
-// 		var startId = getNode(_start).id;
-// 		var goalId = getNode(_goal).id;
-
-// 		var aStars = [];
-
-// 		aStars[startId] = new aStar();
-// 		aStars[startId].status = false;
-// 		aStars[startId].cost = 0;
-
-// 		var selected = startId;
-// 		var neighbors = this.getNeighbors(startId);
-
-
-// 		for (var k=0; k<1000000; k++) {
-
-// 			aStars[selected].status = false;
-// 			var neighbors = this.getNeighbors(selected);
-
-// 			for (var i=0; i<neighbors.length; i++) {
-
-// 				if (!(neighbors[i] in aStars)) {
-// 					aStars[neighbors[i]] = new aStar();
-// 					aStars[neighbors[i]].cost = aStars[selected].cost + this.calcDistance(selected, neighbors[i]);
-// 					aStars[neighbors[i]].before = selected;
-
-// // nodeMarkers[i] = new google.maps.Marker({
-// // 	position: new google.maps.LatLng(nodes[nodeIdToIndex[neighbors[i]]].lat, nodes[nodeIdToIndex[neighbors[i]]].lon)
-// // });
-// // nodeMarkers[i].setMap(gMap);
-
-// 				}
-// 			}
-
-// 			//最小ノードを計算
-// 			var maxF = 100000000;
-// 			for (var id in aStars) {
-// 				if  (aStars[id].status) {
-// 					var f = aStars[id].cost + this.calcDistance(id, goalId);
-// // console.log(id+","+ES.calcDistance(id, goalId))
-// 					if (f < maxF) {
-// 						selected = id;
-// 						maxF = f;
-// 					}
-// 				}
-// 			}
-
-// // console.log(selected+","+goalId)
-// 			if (selected == goalId) {
-// 				break;
-// 			}
-
-// 		}
-
-
-// 		var after = goalId;
-// 		var route = [];
-// 		while(1) {
-// 			route[route.length] = Number(after);
-// 			after = aStars[after].before;
-// 			if (!after) {
-// 				break;
-// 			}
-// 		}
-
-// 		route.reverse();
-
-// 		var lineCoords = [];
-// 		for (var i=0; i<route.length; i++) {
-// 			lineCoords[lineCoords.length] = new google.maps.LatLng(nodes[nodeIdToIndex[route[i]]].lat, nodes[nodeIdToIndex[route[i]]].lon);
-// 		}
-
-// 		var routeLine = new google.maps.Polyline({
-// 			path: lineCoords,
-// 			strokeColor: "#0000ff",
-// 			strokeOpacity: 0.8,
-// 			strokeWeight: 2
-// 		});
-
-// 		routeLine.setMap(gMap);
-
-// 		return route;
-
-// 	};
 
 	this.aStar = function (_start,_goal) {
 		var startId = getNode(_start).id;
@@ -710,11 +754,6 @@ if (typeof _icon == "object") {
 						open[neighbors[i]] = new aStar();
 						open[neighbors[i]].cost = open[selected].cost + this.calcDistance(selected, neighbors[i]);
 						open[neighbors[i]].before = selected;
-
-// nodeMarkers[i] = new google.maps.Marker({
-// 	position: new google.maps.LatLng(nodes[nodeIdToIndex[neighbors[i]]].lat, nodes[nodeIdToIndex[neighbors[i]]].lon)
-// });
-// nodeMarkers[i].setMap(gMap);
 
 					}
 				}
@@ -793,17 +832,20 @@ if (typeof _icon == "object") {
 		for (var i=0; i<objInitFuncs.length; i++) {
 			objInitFuncs[i]();
 		}
+		for (var i=0; i<objReadyFuncs.length; i++) {
+			objReadyFuncs[i]();
+		}
 	}
 
 	// initializer
 	(function () {
 		var domLoadedProm = (function () {
-			var dfd = $.Deferred();
+			var dfd = new $.Deferred;
 			$(function() {
 				dfd.resolve();
 			});
 			return dfd.promise();
-		});
+		})();
 
 		var nodesProm = $.getJSON(nodesUrl,function (data) {
 			nodes = data;
@@ -818,17 +860,13 @@ if (typeof _icon == "object") {
 			domLoadedProm
 		)
 		.then(function () {
-			initGMap();
-			initData();
-			initObjs();
+			initGMap()
+			.then(function (){
+				initData();
+				initObjs();
+				isInitialized = true;
+			});
 
-			// try {
-			// 	var status = setLatLonById();
-			// 	if (status) { throw(status)}
-			isInitialized = true;
-			// } catch (errMsg) {
-			// 	console.error("initializer: "+errMsg);
-			// }
 		})
 		.fail(function () {
 			console.error("ERROR: cannot read files");

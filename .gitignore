@@ -2,3 +2,5 @@ old/
 a_star/
 php/
 *.osm
+.DS_Store
+.bashrc

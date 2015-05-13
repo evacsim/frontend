@@ -52,18 +52,45 @@ AStarCar = function () {
 		    .setIcon("./icons/car.svg",25,25);
 		this.count = 0;
 		this.route = ES.aStar(startId, goalId);
+		this.mileage = 0;
+
 	};
+
+	this.ready = function () {
+		this.setNodeId(this.route[0]);
+		this.count = 1;
+	}
 	this.move = function () {
 		if (this.count < this.route.length) {
 			this.setNodeId(this.route[this.count]);
+			this.mileage += ES.calcDistance(this.route[this.count-1],this.route[this.count]);
 
 			this.count++;
 		} else if (this.count == this.route.length) {
 		// this.remove();
 			this.route.reverse();
-			this.count = 0;
+			this.count = 1;
+		}
+		this.refreshLabel();
+	};
+	var showLabel = false;
+	var label;
+	this.refreshLabel = function () {
+		if (showLabel) {
+			label = $("<div></div>")
+				.html("走行距離: "+Math.round(this.mileage)+"m<br>ドローンとの距離: "+Math.round(ES.calcDistance(this,drone))+"m")
+				.css("backgroundColor","#ffffff")
+				.css("borderStyle","solid")
+				.css("borderWidth","1px")
+				.css("borderRadius","10px")
+			this.setLabel(label,170)
+		} else {
+			this.setLabel(null);
 		}
 	};
+	this.click = function () {
+		showLabel = showLabel ? false : true;
+	}
 };
 
 
@@ -93,6 +120,10 @@ var Drone = function () {
 		}
 
 		this.count++;
+	};
+
+	this.click = function () {
+		this.remove();
 	};
 }
 
