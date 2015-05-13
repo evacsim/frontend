@@ -15,7 +15,25 @@ var Car = function () {
 
 Car = function () {
 	this.route = [];
+	var showLabel = false;
+	this.refreshLabel = function () {
+		if (showLabel) {
+			label = $("<div></div>")
+				.html("ドローンとの距離: "+Math.round(ES.calcDistance(this,drone))+"m")
+				.css("backgroundColor","#ffffff")
+				.css("borderStyle","solid")
+				.css("borderWidth","1px")
+				.css("borderRadius","10px")
+			this.setLabel(label,170)
+		} else {
+			this.setLabel(null);
+		}
+	};
+	this.click = function () {
+		showLabel = showLabel ? false : true;
+	}
 	this.init = function (startId,battery) {
+		
 		this.battery = battery ? battery : 228000; // 走行可能距離
 		this.v = 15; // 1stepにつき15m進む
 
@@ -40,6 +58,7 @@ this.setRoute(startId, nearestShelter);
 	var routeIndex = 0;
 	
 	this.move = function(){
+		this.refreshLabel();
 		if (routeIndex < this.route.length -1 && this.battery>0) {
 			waitCount++;
 			if(wait == waitCount){
@@ -93,6 +112,24 @@ var Shelter = function(){
 }
 
 var Drone = function () {
+	var showLabel = false;
+	var label;
+	this.refreshLabel = function () {
+		if (showLabel) {
+			label = $("<div></div>")
+				.html("ターゲットの座標: <br>("+this.target.getLat()+","+this.target.getLon()+")<br>ターゲットとの距離: "+Math.round(ES.calcDistance(this,this.target))+"m")
+				.css("backgroundColor","#ffffff")
+				.css("borderStyle","solid")
+				.css("borderWidth","1px")
+				.css("borderRadius","10px")
+			this.setLabel(label,170)
+		} else {
+			this.setLabel(null);
+		}
+	};
+	this.click = function () {
+		showLabel = showLabel ? false : true;
+	}
 	this.init = function () {
 		this.setLat(32.689219)
 			.setLon(128.818375)
@@ -113,6 +150,7 @@ var Drone = function () {
 	}
 	var metF = 0;
 	this.move = function () {
+		this.refreshLabel();
 		var dir = ES.calcDirection(this,this.targetPoint);
 		var dLon = ES.meterToLon(this.v*dir.lon);
 		var dLat = ES.meterToLat(this.v*dir.lat);
