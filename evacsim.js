@@ -713,7 +713,7 @@ var evacSim = new (function () {
 	this.refresh = refreshGMap;　// 手動でマップをリフレッシュする為の関数
 
 
-	this.aStar = function (_start,_goal) {
+	this.aStar = function (_start,_goal,lineColor) {
 		var startId = getNode(_start).id;
 		var goalId = getNode(_goal).id;
 
@@ -730,11 +730,6 @@ var evacSim = new (function () {
 			var openMissingIndex = {};
 			var close = {};
 			var closeMissingIndex = {};
-
-
-		// aStars[startId] = new aStar();
-		// aStars[startId].status = false;
-		// aStars[startId].cost = 0;
 
 			open[startId] = new aStar();
 			open[startId].cost = 0;
@@ -808,14 +803,15 @@ var evacSim = new (function () {
 				lineCoords[lineCoords.length] = new google.maps.LatLng(nodes[nodeIdToIndex[route[i]]].lat, nodes[nodeIdToIndex[route[i]]].lon);
 			}
 
-			var routeLine = new google.maps.Polyline({
-				path: lineCoords,
-				strokeColor: "#0000ff",
-				strokeOpacity: 0.8,
-				strokeWeight: 2
-			});
-
-			routeLine.setMap(gMap);
+      if (lineColor) {
+				var routeLine = new google.maps.Polyline({
+					path: lineCoords,
+					strokeColor: lineColor,
+					strokeOpacity: 0.8,
+					strokeWeight: 2
+				});
+			  routeLine.setMap(gMap);
+      }
 
 			this.start();
 

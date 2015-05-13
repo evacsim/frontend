@@ -4,3 +4,4 @@ php/
 *.osm
 .DS_Store
 .bashrc
+*.swp

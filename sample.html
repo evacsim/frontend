@@ -10,6 +10,24 @@
 
 
 var Car = function () {
+	var showLabel = false;
+	var label;
+	this.refreshLabel = function () {
+		if (showLabel) {
+			label = $("<div></div>")
+				.html("ドローンとの距離: "+Math.round(ES.calcDistance(this,drone))+"m")
+				.css("backgroundColor","#ffffff")
+				.css("borderStyle","solid")
+				.css("borderWidth","1px")
+				.css("borderRadius","10px")
+			this.setLabel(label,170)
+		} else {
+			this.setLabel(null);
+		}
+	};
+	this.click = function () {
+		showLabel = showLabel ? false : true;
+	}
 };
 
 Car.prototype.init = function (nodeId) {
@@ -44,6 +62,7 @@ if (!this.searched) {
 			this.prevNodeId = tmpId;
 		}
 	}
+  this.refreshLabel();
 };
 
 AStarCar = function () {
@@ -51,7 +70,7 @@ AStarCar = function () {
 		this.setNodeId(startId)
 		    .setIcon("./icons/car.svg",25,25);
 		this.count = 0;
-		this.route = ES.aStar(startId, goalId);
+		this.route = ES.aStar(startId, goalId,"red");
 		this.mileage = 0;
 
 	};
@@ -119,12 +138,29 @@ var Drone = function () {
 			// cars.push(ES.createObject(AStarCar,1288720754,1288728350).add());
 		}
 
+    this.refreshLabel();
 		this.count++;
 	};
 
-	this.click = function () {
-		this.remove();
+  
+	var showLabel = false;
+	var label;
+	this.refreshLabel = function () {
+		if (showLabel) {
+			label = $("<div></div>")
+				.html("ターゲットの座標: <br>("+this.target.getLat()+","+this.target.getLon()+")<br>ターゲットとの距離: "+Math.round(ES.calcDistance(this,this.target))+"m")
+				.css("backgroundColor","#ffffff")
+				.css("borderStyle","solid")
+				.css("borderWidth","1px")
+				.css("borderRadius","10px")
+			this.setLabel(label,170)
+		} else {
+			this.setLabel(null);
+		}
 	};
+	this.click = function () {
+		showLabel = showLabel ? false : true;
+	}
 }
 
 
