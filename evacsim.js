@@ -1,4 +1,3 @@
-
 var evacSim = new (function () {
 	var gMap;
 	var nodes;
@@ -6,26 +5,38 @@ var evacSim = new (function () {
 	var nodeIdToIndex = {};
 	var wayIdToIndex = [];
 
+// オブジェクト管理用の配列
 	var objs = [];
 	var emptyObjIds = [];
 	var objIcons = [];
 	var objLabels = [];
 	var deadObjs = [];
 
+// オブジェクトのマーカー、ラベルの配列
 	var objGMarkers = [];
 	var objGLabels = [];
 
+// node,wayの可視化用
 	var wayLines = [];
 	var nodeMarkers = [];
 
 	var eachStepFunc;
 	var timer = null;
 
+// 初期化関係
 	var isInitialized = false;
+  var isDataRead = false;
 	var objInitFuncs = [];
 	var objReadyFuncs = [];
+  var closedNodes = [];
 
+// 距離計算用の定数
 	var R_EARTH = 6378137; // 地球半径
+
+
+// タイマー処理用
+  var timers = [];
+  var timerKilledIds = [];
 
 // 設定
 	var timeStep = 100;
@@ -78,6 +89,12 @@ var evacSim = new (function () {
 					nodes[index1].neighbors[nodes[index1].neighbors.length] = id2;
 				}
 			}
+		}
+
+
+		// nodesに通行止めプロパティを追加
+		for (var i=0; i<nodes.length; i++) {
+			nodes[i].closed = false;
 		}
 
 		console.log(nodes)
@@ -148,14 +165,22 @@ var evacSim = new (function () {
 			return null;
 		} else if ((typeof obj == "string") || (typeof obj == "number")) { // 引数がidの場合
 			if (obj in nodeIdToIndex) {  // 無効なidの場合を除外
-				return nodes[nodeIdToIndex[obj]];
+        if (!nodes[nodeIdToIndex[obj]].closed) {
+				  return nodes[nodeIdToIndex[obj]];
+        } else {
+          return null;
+        }
 			} else {
 				return null;
 			}
 		} else if (typeof obj == "object") {
 			if ("getNodeId" in obj) {
 				if (obj.getNodeId() in nodeIdToIndex) {
-					return nodes[nodeIdToIndex[obj.getNodeId()]];
+          if (!nodes[nodeIdToIndex[obj.getNodeId()]].closed) {
+				  	return nodes[nodeIdToIndex[obj.getNodeId()]];
+          } else {
+            return null;
+          }
 				} else {
 					return null;
 				}
@@ -171,7 +196,13 @@ var evacSim = new (function () {
 	this.getNeighbors = function (obj) {
 		var node = getNode(obj);
 		if (node != null) {
-			return node.neighbors.concat();
+      var neighbors = [];
+      for (var i=0; i<node.neighbors.length; i++) {
+        if (!nodes[nodeIdToIndex[node.neighbors[i]]].closed) {
+          neighbors[neighbors.length] = node.neighbors[i];
+        }
+      }
+			return neighbors;
 		} else {
 			console.warn("getNeighbors(): nodeの取得に失敗");
 			return [];
@@ -187,6 +218,34 @@ var evacSim = new (function () {
 			return 0;
 		}
 	};
+
+  this.closeNode = function (obj) {
+    if (isDataRead) {
+      var node = getNode(obj);
+      if (node != null) {
+        node.closed = true;
+      }
+    } else {
+      closedNodes[closedNodes.length] = obj;
+    }
+  };
+  this.openNode = function (obj) {
+    if (isDataRead) {
+      var node = getNode(obj);
+      if (node != null) {
+        node.closed = false;
+      }
+    }
+  };
+  function setClosedNodes() {
+    for (var i=0; i<closedNodes.length; i++) {
+      var node = getNode(closedNodes[i]);
+      if (node != null) {
+        node.closed = true;
+      }
+    }
+    closedNodes = [];
+  }
 
 	this.calcDistance = function (obj1,obj2) {
 		var lat1,lon1,lat2,lon2;
@@ -336,7 +395,6 @@ var evacSim = new (function () {
 
 	this.start = function () {
 		if ((isInitialized) && (!timer)) {
-//			idToLatLon();
 			refreshGMap();
 			timer = setInterval(eachStepFunc, timeStep);
 		}
@@ -351,7 +409,6 @@ var evacSim = new (function () {
 
 	var baseObject = function (_id) {
 		var id = _id;
-		// var isAdded = false;
 		var isAdded = true;
 
 		var lat = mapCenterLat;
@@ -375,10 +432,11 @@ var evacSim = new (function () {
 				return lon;
 			},
 			setNodeId: function (_nodeId) {
-				nodeId = _nodeId;
+//				nodeId = _nodeId;
 
-				var node = getNode(nodeId);
+				var node = getNode(_nodeId);
 				if (node) {
+				nodeId = _nodeId;
 					this.setLat(node.lat);
 					this.setLon(node.lon);
 				} else {
@@ -411,10 +469,6 @@ var evacSim = new (function () {
 					setIcon(_icon,id);
 				} else if (typeof _icon == "string") {
 					if (sizeX && sizeY) {
-						// icon = {
-						// 	url: _icon,                     // url
-						// 	scaledSize: new google.maps.Size(sizeX,sizeY)
-						// };
 						setIcon({
 							url: _icon,                     // url
 							scaledSize: new google.maps.Size(sizeX,sizeY)
@@ -446,7 +500,13 @@ var evacSim = new (function () {
 
 
 				setLabel(label,id);
-			}
+			},
+      setTimer: function (_func,_step) {
+        return setTimer(_func.bind(this),_step);  
+      },
+      killTimer: function (_id) {
+        killTimer(_id);
+      }
 		};
 	};
 
@@ -455,7 +515,7 @@ var evacSim = new (function () {
 	this.createObject = function () {
 		var id = getNewObjId();
 
-		var baseObj = new baseObject(id);
+    var obj = new baseObject(id);
 
 		var _const = arguments[0];
 		var args = Array.prototype.slice.call(arguments,1,arguments.length);
@@ -463,7 +523,7 @@ var evacSim = new (function () {
 		try {
 			if (typeof _const == "function") {
 
-				obj = $.extend({},baseObj, new _const());
+        $.extend(obj, new _const());
 
 				setIcon(null,id);
 				setLabel(null,id);
@@ -551,6 +611,7 @@ var evacSim = new (function () {
 	this.eachStep = function (func,_timeStep) {
 		eachStepFunc = function () {
 			func();
+      timersForward();
 			killObjects();
 
 			try {
@@ -712,7 +773,55 @@ var evacSim = new (function () {
 
 	this.refresh = refreshGMap;　// 手動でマップをリフレッシュする為の関数
 
+// 遅延実行用の関数群
+  function setTimer(_func,_step) {
+    var id;
+    if (_step > 0) {
+      if (timerKilledIds.length > 0) {
+        id = timerKilledIds[timerKilledIds.length-1];
+        timerKilledIds.pop();
+      } else {
+        id = timers.length;
+      }
+      timers[id] = {
+        func: _func,
+        count: _step
+      };
+      return id;
+    } else {
+      return null;
+    }
+  };
+  
+  function killTimer(_id) {
+    if (_id >= 0) {
+      timers[_id] = null;
+      timerKilledIds[timerKilledIds.length] = _id;
+    }
+  }
 
+  function timersForward() {
+    for (var i=0; i<timers.length; i++) {
+      if(timers[i]) {
+        timers[i].count--;
+        if (timers[i].count == -1) {
+          timers[i].func();
+          killTimer(i);
+        }
+      }
+    }
+  }
+
+  this.setTimer = function (_func,_step) {
+    return setTimer(_func,_step);
+  };
+
+  this.killTimer = function (_id) {
+    killTimer(_id);
+  };
+
+
+// 経路探索
 	this.aStar = function (_start,_goal,lineColor) {
 		var startId = getNode(_start).id;
 		var goalId = getNode(_goal).id;
@@ -859,6 +968,8 @@ var evacSim = new (function () {
 			initGMap()
 			.then(function (){
 				initData();
+        isDataRead = true;
+        setClosedNodes();
 				initObjs();
 				isInitialized = true;
 			});
