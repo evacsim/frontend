@@ -5,3 +5,4 @@ php/
 .DS_Store
 .bashrc
 *.swp
+*.swo

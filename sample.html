@@ -67,20 +67,23 @@ if (!this.searched) {
 
 AStarCar = function () {
 	this.init = function (startId,goalId) {
+    this.startId = startId;
+    this.goalId = goalId;
 		this.setNodeId(startId)
 		    .setIcon("./icons/car.svg",25,25);
 		this.count = 0;
-		this.route = ES.aStar(startId, goalId,"green");
 		this.mileage = 0;
 
 	};
 
 	this.ready = function () {
+		this.route = ES.aStar(this.startId, this.goalId,"green");
 		this.setNodeId(this.route[0]);
 		this.count = 1;
 	}
 	this.move = function () {
 		if (this.count < this.route.length) {
+ES.closeNode(this);
 			this.setNodeId(this.route[this.count]);
 			this.mileage += ES.calcDistance(this.route[this.count-1],this.route[this.count]);
 
@@ -122,8 +125,17 @@ var Drone = function () {
 
 		this.count = 0;
 		this.v = 10;
-		this.target = cars[0];
 	};
+  this.ready = function () {
+		this.target = cars[0];
+    this.tid1 = this.setTimer(function () {
+      this.remove();
+    },200);
+    this.setTimer(function () {
+      this.killTimer(this.tid1);
+      console.log("kill!"+this.tid1);
+    },50);
+  };
 	this.move = function () {
 		var dir = ES.calcDirection(this,this.target);
 		var dLon = ES.meterToLon(this.v*dir.lon);
@@ -176,6 +188,7 @@ var astarcar = evacSim.createObject(AStarCar,1288705910,1288712504).add();
 // var astarcar = evacSim.createObject(AStarCar,716035194,1288712504).add(); // 川から
 
 var drone = evacSim.createObject(Drone).add();
+
 
 evacSim.eachStep(function () {
 	cars.forEach(function (car) {
