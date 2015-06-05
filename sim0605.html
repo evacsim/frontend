@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="style.css">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjNUH0oGxSMGagudvTMVfXSTQKwi7wWlw&sensor=TRUE" type="text/javascript"></script>
+<script src="./evacsim.js" type="text/javascript"></script>
+<script type="text/javascript">
+
+
+var Car = function () {
+	var showLabel = false;
+	var label;
+	this.refreshLabel = function () {
+		if (showLabel) {
+			label = $("<div></div>")
+				.html("ドローンとの距離: "+Math.round(ES.calcDistance(this,drone))+"m")
+				.css("backgroundColor","#ffffff")
+				.css("borderStyle","solid")
+				.css("borderWidth","1px")
+				.css("borderRadius","10px")
+			this.setLabel(label,170)
+		} else {
+			this.setLabel(null);
+		}
+	};
+	this.click = function () {
+		showLabel = showLabel ? false : true;
+	}
+};
+
+Car.prototype.init = function (nodeId) {
+	this.prevNodeId = null;
+	this.count = 0;
+	this.setNodeId(nodeId);
+	this.searched = false;
+	this.setIcon("./icons/car.svg",25,25);
+};
+
+Car.prototype.move = function () {
+if (!this.searched) {
+	this.searched = true;
+}
+
+	this.count++;
+	if (this.count == 2) {
+		this.count = 0;
+		var neighbors = ES.getNeighbors(this);
+
+		if (neighbors.length >= 2) {
+			for (var i=0; i<neighbors.length; i++) {
+				if (this.prevNodeId != neighbors[i]) {
+					this.prevNodeId = this.getNodeId();
+					this.setNodeId(neighbors[i]);
+					break;
+				}
+			}
+		} else if (neighbors.length == 1) {
+			var tmpId = this.getNodeId();
+			this.setNodeId(this.prevNodeId);
+			this.prevNodeId = tmpId;
+		}
+	}
+  this.refreshLabel();
+};
+
+AStarCar = function () {
+	this.init = function (startId,goalId) {
+    this.startId = startId;
+    this.goalId = goalId;
+		this.setNodeId(startId)
+		    .setIcon("./icons/car.svg",25,25);
+		this.count = 0;
+		this.mileage = 0;
+
+	};
+
+	this.ready = function () {
+		this.route = ES.aStar(this.startId, this.goalId,"green");
+		this.setNodeId(this.route[0]);
+		this.count = 1;
+	}
+	this.move = function () {
+		if (this.count < this.route.length) {
+			this.setNodeId(this.route[this.count]);
+			this.mileage += ES.calcDistance(this.route[this.count-1],this.route[this.count]);
+
+			this.count++;
+		} else if (this.count == this.route.length) {
+		// this.remove();
+			this.route.reverse();
+			this.count = 1;
+		}
+		this.refreshLabel();
+	};
+	var showLabel = false;
+	var label;
+	this.refreshLabel = function () {
+		if (showLabel) {
+			label = $("<div></div>")
+				.html("走行距離: "+Math.round(this.mileage)+"m<br>ドローンとの距離: "+Math.round(ES.calcDistance(this,drone))+"m")
+				.css("backgroundColor","#ffffff")
+				.css("borderStyle","solid")
+				.css("borderWidth","1px")
+				.css("borderRadius","10px")
+			this.setLabel(label,170)
+		} else {
+			this.setLabel(null);
+		}
+	};
+	this.click = function () {
+		showLabel = showLabel ? false : true;
+	}
+};
+
+
+
+var Drone = function () {
+	this.init = function () {
+		this.setLat(32.657141)
+			.setLon(128.849108)
+			.setIcon("./icons/drone.svg",50,50)
+
+		this.count = 0;
+		this.v = 60;
+	};
+  this.ready = function () {
+		this.target = astarcar;
+    this.tid1 = this.setTimer(function () {
+      this.remove();
+    },200);
+  };
+	this.move = function () {
+		var dir = ES.calcDirection(this,this.target);
+		var dLon = ES.meterToLon(this.v*dir.lon);
+		var dLat = ES.meterToLat(this.v*dir.lat);
+		this.addToLon(dLon);
+		this.addToLat(dLat);
+
+		if (ES.calcDistance(this.target,this)<100) {
+			astarcar.route = ES.aStar(astarcar.getNodeId(),astarcar.goalId);
+			console.log(astarcar.getNodeId())
+			astarcar.count = 0;
+			this.remove()
+		}
+
+    this.refreshLabel();
+		this.count++;
+	};
+
+  
+	var showLabel = false;
+	var label;
+	this.refreshLabel = function () {
+		if (showLabel) {
+			label = $("<div></div>")
+				.html("ターゲットの座標: <br>("+this.target.getLat()+","+this.target.getLon()+")<br>ターゲットとの距離: "+Math.round(ES.calcDistance(this,this.target))+"m")
+				.css("backgroundColor","#ffffff")
+				.css("borderStyle","solid")
+				.css("borderWidth","1px")
+				.css("borderRadius","10px")
+			this.setLabel(label,170)
+		} else {
+			this.setLabel(null);
+		}
+	};
+	this.click = function () {
+		showLabel = showLabel ? false : true;
+	}
+}
+
+
+
+var cars = [];
+
+for (var i=0; i<1; i++) {
+	cars[i] = evacSim.createObject(Car,1288732874).add();
+}
+
+var astarcar = evacSim.createObject(AStarCar,1288705910,1288712504).add();
+
+// var astarcar = evacSim.createObject(AStarCar,716035194,1288712504).add(); // 川から
+
+var drone = evacSim.createObject(Drone).add();
+
+ES.setTimer(function () {
+	ES.closeNode(1288698624)
+	console.log("closed!")
+},5);
+evacSim.eachStep(function () {
+	cars.forEach(function (car) {
+		car.move();
+	});
+
+	drone.move();
+
+	astarcar.move();
+});
+
+    </script>
+</head>
+<body>
+<button style="position: absolute; width: 100px; height: 100px; background-color: #ffcccc; z-index: 1000; display: block;" onclick="evacSim.start();">start</button>
+<button style="position: absolute;left: 200px; width: 100px; height: 100px; background-color: #ffcccc; z-index: 1000; display: block;" onclick="drone.remove();">drone bye</button>
+<button style="position: absolute;left: 400px; width: 100px; height: 100px; background-color: #ffcccc; z-index: 1000; display: block;" onclick="evacSim.showNodes();">ways</button>
+<div id="map_canvas"></div>
+
+</body>
+</html>
