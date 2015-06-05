@@ -294,7 +294,7 @@ var evacSim = new (function () {
 			}
 
 		} catch (errMsg) {
-			console.warn("calcDistance(): "+errMsg);
+			console.error("calcDistance(): "+errMsg);
 			return 0;
 		}
 	};

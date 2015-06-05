@@ -139,9 +139,9 @@ var Drone = function () {
 		this.addToLat(dLat);
 
 		if (ES.calcDistance(this.target,this)<100) {
-			astarcar.route = ES.aStar(astarcar.getNodeId(),astarcar.goalId);
+			astarcar.route = ES.aStar(astarcar.getNodeId(),astarcar.goalId,"red");
 			console.log(astarcar.getNodeId())
-			astarcar.count = 0;
+			astarcar.count = 1;
 			this.remove()
 		}
 
