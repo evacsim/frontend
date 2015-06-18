@@ -441,8 +441,9 @@ var evacSim = new (function () {
 					this.setLon(node.lon);
 				} else {
 					console.warn("setNodeId: 無効なnodeIdです。")
+          return false;
 				}
-				return this;
+				return true;
 			},
 			getNodeId: function () {
 				return nodeId;

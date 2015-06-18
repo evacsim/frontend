@@ -70,7 +70,7 @@ AStarCar = function () {
     this.startId = startId;
     this.goalId = goalId;
 		this.setNodeId(startId)
-		    .setIcon("./icons/car.svg",25,25);
+	  this.setIcon("./icons/car.svg",25,25);
 		this.count = 0;
 		this.mileage = 0;
 
@@ -84,10 +84,12 @@ AStarCar = function () {
 	this.move = function () {
 		if (this.count < this.route.length) {
 ES.closeNode(this);
-			this.setNodeId(this.route[this.count]);
-			this.mileage += ES.calcDistance(this.route[this.count-1],this.route[this.count]);
+			var status = this.setNodeId(this.route[this.count]);
 
-			this.count++;
+      if (status) {
+			  this.mileage += ES.calcDistance(this.route[this.count-1],this.route[this.count]);
+			  this.count++;
+      }
 		} else if (this.count == this.route.length) {
 		// this.remove();
 			this.route.reverse();
@@ -171,7 +173,15 @@ var Drone = function () {
 	}
 }
 
-
+var Stopper = function () {
+  this.init = function (nodeId) {
+    this.setNodeId(nodeId);
+//    this.setTimer(function () {
+      ES.closeNode(nodeId);
+//    }, 20);
+  };
+}
+var stoppers = [];
 
 var cars = [];
 
@@ -185,7 +195,8 @@ var astarcar = evacSim.createObject(AStarCar,1288705910,1288712504).add();
 
 var drone = evacSim.createObject(Drone).add();
 
-ES.closeNode(1288715290)
+
+
 evacSim.eachStep(function () {
 	cars.forEach(function (car) {
 		car.move();
@@ -196,6 +207,9 @@ evacSim.eachStep(function () {
 	astarcar.move();
 });
 
+ES.setTimer(function () {
+  stoppers[stoppers.length] = ES.createObject(Stopper,1288715290);
+}, 20);
     </script>
 </head>
 <body>
