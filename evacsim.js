@@ -165,11 +165,11 @@ var evacSim = new (function () {
 			return null;
 		} else if ((typeof obj == "string") || (typeof obj == "number")) { // 引数がidの場合
 			if (obj in nodeIdToIndex) {  // 無効なidの場合を除外
-        if (!nodes[nodeIdToIndex[obj]].closed) {
+//        if (!nodes[nodeIdToIndex[obj]].closed) {
 				  return nodes[nodeIdToIndex[obj]];
-        } else {
-          return null;
-        }
+//        } else {
+//          return null;
+//        }
 			} else {
 				return null;
 			}
@@ -196,13 +196,17 @@ var evacSim = new (function () {
 	this.getNeighbors = function (obj) {
 		var node = getNode(obj);
 		if (node != null) {
-      var neighbors = [];
-      for (var i=0; i<node.neighbors.length; i++) {
-        if (!nodes[nodeIdToIndex[node.neighbors[i]]].closed) {
-          neighbors[neighbors.length] = node.neighbors[i];
+      if (!node.closed) {
+        var neighbors = [];
+        for (var i=0; i<node.neighbors.length; i++) {
+          if (!nodes[nodeIdToIndex[node.neighbors[i]]].closed) {
+            neighbors[neighbors.length] = node.neighbors[i];
+          }
         }
+			  return neighbors;
+      } else {
+        return [];
       }
-			return neighbors;
 		} else {
 			console.warn("getNeighbors(): nodeの取得に失敗");
 			return [];
@@ -212,7 +216,11 @@ var evacSim = new (function () {
 	this.getAlt = function (obj) {
 		var node = getNode(obj);
 		if (node != null) {
-			return node.alt;
+      if (!node.closed) {
+			  return node.alt;
+      } else {
+        return 0;
+      }
 		} else {
 			console.warn("getAlt(): nodeの取得に失敗");
 			return 0;
@@ -223,7 +231,9 @@ var evacSim = new (function () {
     if (isDataRead) {
       var node = getNode(obj);
       if (node != null) {
-        node.closed = true;
+        if (!node.closed) {
+          node.closed = true;
+        }
       }
     } else {
       closedNodes[closedNodes.length] = obj;
@@ -436,13 +446,18 @@ var evacSim = new (function () {
 
 				var node = getNode(_nodeId);
 				if (node) {
-				nodeId = _nodeId;
-					this.setLat(node.lat);
-					this.setLon(node.lon);
+          if (!node.closed) {
+				    nodeId = _nodeId;
+					  this.setLat(node.lat);
+					  this.setLon(node.lon);
+          } else {
+            return false;
+          }
 				} else {
 					console.warn("setNodeId: 無効なnodeIdです。")
+          return false;
 				}
-				return this;
+				return true;
 			},
 			getNodeId: function () {
 				return nodeId;
