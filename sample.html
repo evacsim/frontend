@@ -176,9 +176,11 @@ var Drone = function () {
 var Stopper = function () {
   this.init = function (nodeId) {
     this.setNodeId(nodeId);
-//    this.setTimer(function () {
-      ES.closeNode(nodeId);
-//    }, 20);
+    ES.closeNode(nodeId);
+  };
+  this.click = function () {
+    ES.openNode(this.getNodeId());
+    this.remove();
   };
 }
 var stoppers = [];
@@ -207,9 +209,9 @@ evacSim.eachStep(function () {
 	astarcar.move();
 });
 
-ES.setTimer(function () {
+//ES.setTimer(function () {
   stoppers[stoppers.length] = ES.createObject(Stopper,1288715290);
-}, 20);
+//}, 20);
     </script>
 </head>
 <body>
