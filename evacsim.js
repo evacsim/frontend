@@ -362,7 +362,7 @@ var evacSim = new (function () {
 			}
 
 		} catch (errMsg) {
-			console.warn("calcDirection(): "+errMsg);
+			console.error("calcDirection(): "+errMsg);
 			return {
 				lat: 0,
 				lon: 0
