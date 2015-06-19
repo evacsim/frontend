@@ -84,6 +84,7 @@ Car = function () {
 		}else{
 			this.remove();
 			this.shelter.carNum++;
+			this.shelter.battery += this.battery;
 		}
 	};
 	
@@ -143,6 +144,7 @@ Car = function () {
 
 var Shelter = function(){
 	this.carNum = 0;
+	this.battery = 0;
 	this.init = function(shelterId){
 		this.setNodeId(shelterId)
 		this.setIcon("./icons/shelter.svg",30,30);
@@ -152,12 +154,12 @@ var Shelter = function(){
 	this.refreshLabel = function () {
 		if (showLabel) {
 			label = $("<div></div>")
-				.html("車の台数: "+this.carNum+"台")
+				.html("車の台数: "+this.carNum+"台<br>バッテリー量:"+Math.round(this.battery))
 				.css("backgroundColor","#ffffff")
 				.css("borderStyle","solid")
 				.css("borderWidth","1px")
 				.css("borderRadius","10px")
-			this.setLabel(label,80)
+			this.setLabel(label,120)
 			console.log("ok")
 		} else {
 			this.setLabel(null);
