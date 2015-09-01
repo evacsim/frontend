@@ -415,7 +415,16 @@ var evacSim = new (function () {
     timer = null;
   };
 
+  this.getNodes = function () {
+    var count = 0;
+    return Array.prototype.map.call(nodes,function (elem) {
+      return elem.id
+    });
+  };
 
+  this.getGMapObj = function () {
+    return gMap;
+  }
 
   var baseObject = function (_id) {
     var id = _id;
@@ -862,6 +871,8 @@ var evacSim = new (function () {
       var selected = startId;
       var neighbors = this.getNeighbors(startId);
 
+      var isSuccess = true;
+
 
       for (var k=0; k<1000000; k++) {
 
@@ -880,6 +891,7 @@ var evacSim = new (function () {
         close[selected] = open[selected];
         delete open[selected];
         if (jQuery.isEmptyObject(open)) {
+          isSuccess = false
           console.error("aStar(): there are no route");
           break;
         }
@@ -906,42 +918,49 @@ var evacSim = new (function () {
 
       }
 
-      var after = selected;
-      var route = [];
-      while(1) {
-        route[route.length] = Number(after);
-        after = close[after].before;
-        if (!after) {
-          break;
+      if (isSuccess) {
+        var after = selected;
+        var route = [];
+        while(1) {
+          route[route.length] = Number(after);
+          after = close[after].before;
+          if (!after) {
+            break;
+          }
         }
-      }
 
-      for (var id in close) {
-        delete close[id];
-      }
+        for (var id in close) {
+          delete close[id];
+        }
 
-      route.reverse();
+        route.reverse();
 
-      var lineCoords = [];
-      for (var i=0; i<route.length; i++) {
-        lineCoords[lineCoords.length] = new google.maps.LatLng(nodes[nodeIdToIndex[route[i]]].lat, nodes[nodeIdToIndex[route[i]]].lon);
-      }
+        var lineCoords = [];
+        for (var i=0; i<route.length; i++) {
+          lineCoords[lineCoords.length] = new google.maps.LatLng(nodes[nodeIdToIndex[route[i]]].lat, nodes[nodeIdToIndex[route[i]]].lon);
+        }
 
-      if (lineColor) {
-        var routeLine = new google.maps.Polyline({
-          path: lineCoords,
-          strokeColor: lineColor,
-          strokeOpacity: 0.8,
-          strokeWeight: 2
-        });
-        routeLine.setMap(gMap);
+        if (lineColor) {
+          var routeLine = new google.maps.Polyline({
+            path: lineCoords,
+            strokeColor: lineColor,
+            strokeOpacity: 0.8,
+            strokeWeight: 2
+          });
+          routeLine.setMap(gMap);
+        }
       }
 
       this.start();
 
-      return route;
+      if (isSuccess) {
+        return route;
+      } else {
+        return false;
+      }
     } else {
       console.error("astar(): nodeの取得に失敗")
+      return false;
     }
 
   };
