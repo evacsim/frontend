@@ -199,7 +199,12 @@ var drone = evacSim.createObject(Drone).add();
 
 tmr = ES.setTimer(function () {
   console.log(ES.getNodes())
+  console.log(ES.aStar(1440850204,1288723891,'#ff0000'));
+  for (var i=0; i<10; i++) {
+    ES.createObject(Stopper,ES.randomNode());
+  }
 },1);
+
 
 
 evacSim.eachStep(function () {

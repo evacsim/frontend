@@ -426,6 +426,18 @@ var evacSim = new (function () {
     return gMap;
   }
 
+  this.randomNode = function () {
+    var nodeIndex;
+    for (var i=0; i<nodes.length; i++) {
+      nodeIndex = Math.floor(Math.random()*nodes.length);
+      if (ES.aStar(nodes[nodeIndex].id,1288708805) != false) {
+        console.log('ok');
+        break;
+      }
+    }
+    return nodes[nodeIndex].id;
+  }
+
   var baseObject = function (_id) {
     var id = _id;
     var isAdded = true;
@@ -709,11 +721,13 @@ var evacSim = new (function () {
         }
 
         if (!objGLabels[i]) {
-          objGLabels[i] = new GMapLabel({
-            position: gMapLatLng,
-            label: getLabel(i)
-          });
-          objGLabels[i].setMap(gMap);
+          if (getLabel(i)) {
+            objGLabels[i] = new GMapLabel({
+              position: gMapLatLng,
+              label: getLabel(i)
+            });
+            objGLabels[i].setMap(gMap);
+          }
         } else {
           objGLabels[i].setPosition(gMapLatLng);
           objGLabels[i].setLabel(getLabel(i));
