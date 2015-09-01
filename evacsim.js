@@ -4,6 +4,7 @@ var evacSim = new (function () {
   var ways;
   var nodeIdToIndex = {};
   var wayIdToIndex = [];
+  var readyFunc = function () {};
 
 // オブジェクト管理用の配列
   var objs = [];
@@ -437,6 +438,10 @@ var evacSim = new (function () {
     }
     return nodes[nodeIndex].id;
   }
+
+  this.ready = function (_func) {
+    readyFunc = _func;
+  };
 
   var baseObject = function (_id) {
     var id = _id;
@@ -1018,6 +1023,7 @@ var evacSim = new (function () {
         initData();
         isDataRead = true;
         setClosedNodes();
+        readyFunc();
         initObjs();
         isInitialized = true;
       });
