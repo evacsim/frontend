@@ -40,12 +40,19 @@ var evacSim = new (function () {
   var timerKilledIds = [];
 
 // 設定
+  var root = ''
   var timeStep = 100;
-  var nodesUrl = "nodes.json";
-  var waysUrl = "ways.json";
   var mapCenterLat = 32.695528;
   var mapCenterLon = 128.840861;
   var domId = "map_canvas";
+
+  function nodesUrl() {
+    return root + "nodes.json";
+  }
+  function waysUrl() {
+    return root + "ways.json";
+  }
+
 
 
   function initGMap(_callback) {
@@ -863,6 +870,10 @@ var evacSim = new (function () {
     killTimer(_id);
   };
 
+  this.setRoot = function (_root) {
+    root = _root;
+  };
+  	
 
 // 経路探索
   this.aStar = function (_start,_goal,lineColor) {
@@ -996,7 +1007,9 @@ var evacSim = new (function () {
   }
 
   // initializer
-  (function () {
+  
+
+  var init = function () {
     var domLoadedProm = (function () {
       var dfd = new $.Deferred;
       $(function() {
@@ -1005,10 +1018,10 @@ var evacSim = new (function () {
       return dfd.promise();
     })();
 
-    var nodesProm = $.getJSON(nodesUrl,function (data) {
+    var nodesProm = $.getJSON(nodesUrl(),function (data) {
       nodes = data;
     });
-    var waysProm = $.getJSON(waysUrl, function (data) {
+    var waysProm = $.getJSON(waysUrl(), function (data) {
       ways = data;
     });
 
@@ -1032,7 +1045,9 @@ var evacSim = new (function () {
     .fail(function () {
       console.error("ERROR: cannot read files");
     });
-  })();
+  };
+  this.init = init;
+  init();
 
   return this;
 

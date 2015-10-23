@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="style.css">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<style>
+a {
+  display: block;
+  float: left;
+  width: 160px;
+  height: 30px;
+  color: #fff;
+  text-align: center;
+  line-height: 30px;
+  text-decoration: none;
+}
+a:visited{
+
+}
+a:hover {
+  background-color: #333399;
+}
+a:active {
+}
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjNUH0oGxSMGagudvTMVfXSTQKwi7wWlw&sensor=TRUE" type="text/javascript"></script>
+<script src="./evacsim.js" type="text/javascript"></script>
+<script type="text/javascript">
+//海岸線に５台並べて，他の避難所に向かわせるシミュレーション
+var gridRect = [];
+var gridMinLat= 32.630000
+var gridMinLon= 128.780000
+var gridMaxLat= 32.760000
+var gridMaxLon= 128.900000
+var Nx = 7;
+var Ny = 8;
+var Dx = (gridMaxLon-gridMinLon)/Nx;
+var Dy = (gridMaxLat-gridMinLat)/Ny;
+var gridCarNumber=new Array(Nx);
+var gridCarBattery=new Array(Nx);
+for (var i=0;i<Nx;i++){
+	gridCarNumber[i]=new Array(Ny);
+}
+for (var i=0;i<Nx;i++){
+	gridCarBattery[i]=new Array(Ny);
+}
+ES.ready(function(){
+	var map = ES.getGMapObj();
+console.log(Dx)
+console.log(Dy)
+var gridLineX = [];
+var gridLineY = [];
+	for(var i=0;i<=Nx;i++){
+		var gridLineLatLon = [
+			{lat: gridMinLat, lng: gridMinLon+i*Dx},
+			{lat: gridMaxLat, lng: gridMinLon+i*Dx}
+		];
+
+		gridLineX[i] = new google.maps.Polyline({
+			path: gridLineLatLon,
+			geodesic: true,
+			strokeColor: '#CCCCCC',
+			strokeOpacity: 1.0,
+			strokeWeight: 2
+		});
+		gridLineX[i].setMap(map);
+	}
+	for(var i=0;i<=Ny;i++){
+		var gridLineLatLon = [
+			{lat: gridMinLat+i*Dy, lng: gridMinLon},
+			{lat: gridMinLat+i*Dy, lng: gridMaxLon}
+		];
+
+		gridLineY[i] = new google.maps.Polyline({
+			path: gridLineLatLon,
+			geodesic: true,
+			strokeColor: '#CCCCCC',
+			strokeOpacity: 1.0,
+			strokeWeight: 2
+		});
+		gridLineY[i].setMap(map);
+	}
+
+	for(var i=0;i<=Ny;i++){
+		gridLineY[i].setMap(null);
+	}
+	for(var i=0;i<=Nx;i++){
+		gridLineX[i].setMap(null);
+	}
+		
+	for (var i=0; i<Nx-1; i++) {
+		gridRect[i] = [];
+		for (var j=0; j<Ny-1; j++) {
+			gridRect[i][j] = new google.maps.Rectangle({
+				strokeColor: '#FF0000',
+				strokeOpacity: 0.8,
+				strokeWeight: 1,
+				fillColor: '#FFFFFF',
+				fillOpacity: 0.10,
+				map: map,
+				bounds: new google.maps.LatLngBounds(
+					new google.maps.LatLng(gridMinLat+j*Dy, gridMinLon+i*Dx),
+					new google.maps.LatLng(gridMinLat+(j+2)*Dy, gridMinLon+(i+2)*Dx)
+				)
+			});
+		}
+	}
+	console.log(gridRect[1][1])
+});
+
+//10クロック後、色変化
+ES.setTimer(function () {
+	gridRect[1][1].fillColor = "#0000ff";
+	gridRect[1][1].setMap(null)
+	gridRect[1][1].setMap(ES.getGMapObj())
+},10)
+var Car = function () {
+};
+
+
+Car = function () {
+	this.metDrone = false;
+	this.route = [];
+	var showLabel = false;
+	this.shelter;
+	this.refreshLabel = function () {
+		if (showLabel) {
+			label = $("<div></div>")
+				.html("ドローンとの距離: "+Math.round(ES.calcDistance(this,drone))+"m"+"<br>myId: "+this.myId+"<br>車密度"+Math.round(this.maxBattery)+"<br>cars.battery"+this.battery)
+				//.html("ドローンとの距離: "+Math.round(ES.calcDistance(this,drone))+"m<br>changeRoute"+(this.changeRoute.length? this.changeRoute[0].toString(): "")+"<br>myId"+this.myId )
+				.css("backgroundColor","#ffffff")
+				.css("borderStyle","solid")
+				.css("borderWidth","1px")
+				.css("borderRadius","10px")
+			this.setLabel(label,170)
+		} else {
+			this.setLabel(null);
+		}
+	};
+	this.click = function () {
+		showLabel = showLabel ? false : true;
+	}
+	this.init = function (startId,myId,battery) {
+		this.myId = myId;
+		this.battery = battery ? battery : 228000; // 走行可能距離
+		this.v = 15; // 1stepにつき15m進む
+		this.maxBattery = this.battery;
+
+		startId = ES.randomNode();
+		this.setNodeId(startId)
+		this.setIcon("./icons/car.svg",25,25);
+
+		var minDistance = 100000000;
+		var nearestShelter = 0;
+		for(var i=0;i<shelters.length;i++){
+			if(ES.calcDistance(this,shelters[i])<minDistance){
+			minDistance = ES.calcDistance(this,shelters[i]);
+			nearestShelter = shelters[i];
+			}
+		}
+//		this.route = ES.aStar(startId, nearestShelter);
+		this.setRoute(startId, nearestShelter,"blue");
+		this.shelter =  nearestShelter;
+	};
+
+
+
+
+	var waitCount = -1;
+	var wait = 0;
+	var routeIndex = 0;
+	this.ready = function () {
+		var l = ES.calcDistance(this.route[routeIndex],this.route[routeIndex+1]);
+		wait = l/this.v;
+	}
+
+	
+	this.move = function(){
+		this.refreshLabel();
+		this.sendData();
+		this.receiveData();
+		if (routeIndex < this.route.length -2 && this.battery>0) {
+
+			waitCount++;
+			if(wait <= waitCount){
+				routeIndex++;
+				this.setNodeId(this.route[routeIndex+1]);
+				var l = ES.calcDistance(this.route[routeIndex],this.route[routeIndex+1]);
+//			wait = Math.ceil(l/this.v);
+				wait = l/this.v - (waitCount-wait);
+				this.battery -= l;
+				waitCount = 0;
+			}
+		}else{
+			total_count +=step_count;
+			this.remove();
+			dead_count++;
+			if(dead_count == cars.length){
+
+				var JSONdata = {
+								step_count: step_count,
+								total_count: total_count,
+								cars_length: cars.length
+							}
+				for(var i=0;i<shelters.length;i++){
+					JSONdata["shelters["+i+"].battery"] =  Math.round(shelters[i].battery);
+				}
+				$.ajax({
+					type : 'post',
+					url : "./out.php",
+					data : JSON.stringify(JSONdata),
+					contentType: 'application/JSON',
+					dataType : 'JSON',
+					scriptCharset: 'utf-8',
+					success : function(data) {
+						console.log(data);
+						console.log("data: "+JSON.stringify(data));
+					},
+					error : function(xhr,ts,et) {
+						console.log(ts);
+						console.log(xhr);
+						console.log(et);
+					}
+				});
+			}
+			this.shelter.carNum++;
+			this.shelter.battery += this.battery;
+		}
+	};
+	
+	this.sentBy = [];
+	this.closedNode = [];
+	this.changeRoute = [];
+	this.sendData = function(){
+		for(var i=0;i<cars.length;i++){
+			if(ES.calcDistance(this,cars[i])<200){
+				if(($.inArray(this.myId,cars[i].sentBy)<0) && (this.changeRoute.length) ){
+					cars[i].sentBy.push(this.myId);
+					cars[i].changeRoute = cars[i].changeRoute.concat(this.changeRoute);
+				}
+			}
+		}
+	}
+	this.receiveData = function(){
+		for(var k=0;k<this.changeRoute.length;k++){
+			if(this.changeRoute[k].car==this.myId){
+				this.setRoute(this.getNodeId(),this.changeRoute[k].shelter,"red")
+				this.shelter = this.changeRoute[k].shelter;
+				this.changeRoute[k].car = 1233454;
+			}
+		}
+	}
+
+
+	this.setRoute = function (_from, _to,_color) {
+		this.route = ES.aStar(_from, _to,_color);
+		waitCount = -1;
+		wait = 0;
+		routeIndex = 0;
+	};
+		/*var minDistance = 100000000;
+		var nearestShelter = 0;
+		for(var i=0;i<shelters.length;i++){
+			if(ES.calcDistance(this,shelters[i])<minDistance){
+			minDistance = ES.calcDistance(this,shelters[i]);
+			nearestShelter = shelters[i];
+			}
+		}
+		this.route = ES.aStar(startId, nearestShelter);
+	};
+	this.move = function () {
+		if (this.count < this.route.length) {
+			this.setNodeId(this.route[this.count]);
+
+			this.count++;
+		} else if (this.count == this.route.length) {
+		// this.remove();
+			//this.route.reverse();
+			//this.count = 0;
+		}
+	};
+*/
+};
+
+var Shelter = function(){
+	this.carNum = 0;
+	this.battery = 0;
+	this.init = function(shelterId){
+		this.setNodeId(shelterId)
+		this.setIcon("./icons/shelter.svg",30,30);
+	};
+	var showLabel = true;
+	var label;
+	this.refreshLabel = function () {
+		if (showLabel) {
+			label = $("<div></div>")
+				.html("車の台数: "+this.carNum+"台<br>バッテリー量:"+Math.round(this.battery)+"m")
+				.css("backgroundColor","#ffffff")
+				.css("borderStyle","solid")
+				.css("borderWidth","1px")
+				.css("borderRadius","10px")
+			this.setLabel(label,120)
+		} else {
+			this.setLabel(null);
+		}
+	};
+}
+
+var Drone = function () {
+	this.closedNode = [];
+	this.changeRoute = [];
+	var showLabel = true;
+	var label;
+	this.refreshLabel = function () {
+		if (showLabel) {
+			label = $("<div></div>")
+				.html("ターゲットの座標: <br>("+this.target.getLat()+","+this.target.getLon()+")<br>ターゲットとの距離: "+Math.round(ES.calcDistance(this,this.target))+"m")
+				.css("backgroundColor","#ffffff")
+				.css("borderStyle","solid")
+				.css("borderWidth","1px")
+				.css("borderRadius","10px")
+			this.setLabel(label,170)
+		} else {
+			this.setLabel(null);
+		}
+	};
+	this.click = function () {
+		showLabel = showLabel ? false : true;
+	}
+	this.init = function (droneLat,droneLon) {
+		console.log(ES.getNodes());
+		
+		//カントリークラブ
+//		this.setLat(32.664832)
+//			.setLon(128.856881)
+		this.setLat(droneLat)
+			.setLon(droneLon)
+			.setIcon("./icons/drone.svg",50,50)
+
+		this.count = 0;
+		this.v = 22;//秒速１４０ｍ
+		this.target = cars[0];
+		this.target = false;
+		var minDistance = 10000000000;
+		var minDensity = 0;
+		var Density = 2000;//距離が2０００m以内
+		this.target = 0;
+		for(var i=0;i<cars.length;i++){
+			for(var j=i+1;j<cars.length;j++){
+				if(ES.calcDistance(cars[i],cars[j])<Density){
+					cars[i].maxBattery += cars[j].battery;
+				}
+			}
+		}
+		for(var k=0;k<cars.length;k++){
+			if(cars[k].maxBattery>minDensity){
+				minDensity = cars[k].maxBattery;
+				this.target = cars[k];
+			}
+		}
+		//this.target = cars[2];
+		//this.setRoute();
+	}
+	var metF = 0;
+	var metF2 = 1;
+	this.move = function () {
+		if(this.target.getNodeId()==null){
+			this.setRoute();
+		}
+
+		this.refreshLabel();
+		var dir = ES.calcDirection(this,this.target);
+		var dLon = ES.meterToLon(this.v*dir.lon);
+		var dLat = ES.meterToLat(this.v*dir.lat);
+		this.addToLon(dLon);
+		this.addToLat(dLat);
+		this.count++;
+		if(ES.calcDistance(this,this.target)<200){
+			if (this.target.setRoute) {
+				this.target.setRoute(this.target,shelters[1],"red");
+				this.shelter = shelters[1]
+				this.sendData();
+				this.setRoute();
+			}
+		}
+	};
+	this.sendData = function(){
+		this.target.changeRoute = this.target.changeRoute.concat(this.changeRoute);
+	}
+	var l = 0;
+	this.setRoute = function(){
+
+		var dist = 10000000;
+		var carnum;
+		for (var i=0; i<cars.length; i++) {
+			if ((dist > ES.calcDistance(cars[i],this)) && (!cars[i].metDrone)) {
+				dist = ES.calcDistance(cars[i],this);
+				carnum = i;
+			}
+		}
+		if (carnum >= 0) {
+			cars[carnum].metDrone = true;
+			this.target = cars[carnum];
+		} else {
+			this.target = shelters[0];
+		}
+	}
+}
+
+var Stopper = function () {
+  this.init = function (_id) {
+    this.setNodeId(_id);
+  };
+}
+
+
+var cars = [];
+var shelters = [];
+	shelters.push(ES.createObject(Shelter,1288699152).add());
+	//shelters.push(ES.createObject(Shelter,1288696689).add());
+	//shelters.push(ES.createObject(Shelter,1288732567).add());
+	shelters.push(ES.createObject(Shelter,1288726192).add());
+	shelters.push(ES.createObject(Shelter,1288704180).add());
+			cars.push(ES.createObject(Car,1288720521,0).add());
+			cars.push(ES.createObject(Car,1288720521,1).add());
+			cars.push(ES.createObject(Car,1288720521,2).add());
+			cars.push(ES.createObject(Car,1288720521,3).add());
+			cars.push(ES.createObject(Car,1288720521,4).add());
+			cars.push(ES.createObject(Car,1288720521,5).add());
+			cars.push(ES.createObject(Car,1288720521,6).add());
+			cars.push(ES.createObject(Car,1288720521,7).add());
+			cars.push(ES.createObject(Car,1288720521,8).add());
+			cars.push(ES.createObject(Car,1288720521,9).add());
+			cars.push(ES.createObject(Car,1288720521,10).add());
+			cars.push(ES.createObject(Car,1288720521,11).add());
+			cars.push(ES.createObject(Car,1288720521,12).add());
+			cars.push(ES.createObject(Car,1288720521,13).add());
+			cars.push(ES.createObject(Car,1288720521,14).add());
+			cars.push(ES.createObject(Car,1288720521,15).add());
+			cars.push(ES.createObject(Car,1288720521,16).add());
+			cars.push(ES.createObject(Car,1288720521,17).add());
+			cars.push(ES.createObject(Car,1288720521,18).add());
+			cars.push(ES.createObject(Car,1288720521,19).add());
+			cars.push(ES.createObject(Car,1288720521,20).add());
+			cars.push(ES.createObject(Car,1288720521,21).add());
+			cars.push(ES.createObject(Car,1288720521,22).add());
+			cars.push(ES.createObject(Car,1288720521,23).add());
+			cars.push(ES.createObject(Car,1288720521,24).add());
+			cars.push(ES.createObject(Car,1288720521,25).add());
+			cars.push(ES.createObject(Car,1288720521,26).add());
+			cars.push(ES.createObject(Car,1288720521,27).add());
+			cars.push(ES.createObject(Car,1288720521,28).add());
+			cars.push(ES.createObject(Car,1288720521,29).add());
+			cars.push(ES.createObject(Car,1288720521,30).add());
+			cars.push(ES.createObject(Car,1288720521,31).add());
+			cars.push(ES.createObject(Car,1288720521,32).add());
+			cars.push(ES.createObject(Car,1288720521,33).add());
+			cars.push(ES.createObject(Car,1288720521,34).add());
+			cars.push(ES.createObject(Car,1288720521,35).add());
+			cars.push(ES.createObject(Car,1288720521,36).add());
+			cars.push(ES.createObject(Car,1288720521,37).add());
+			cars.push(ES.createObject(Car,1288720521,38).add());
+			cars.push(ES.createObject(Car,1288720521,39).add());
+		
+		
+			//cars[0].changeRoute.push({car:3,shelter:shelters[1]});
+//var astarcar = evacSim.createObject(Car,1288705910,1288712504).add();
+
+// var astarcar = evacSim.createObject(Car,716035194,1288712504).add(); // 川から
+
+var drone = evacSim.createObject(Drone,32.664832,128.856881);
+var drone2 = evacSim.createObject(Drone,32.694000,128.840000);
+	drone.changeRoute.push({car:0,shelter:shelters[1]});
+	drone.changeRoute.push({car:1,shelter:shelters[2]});
+	drone.changeRoute.push({car:2,shelter:shelters[1]});
+	drone.changeRoute.push({car:3,shelter:shelters[2]});
+	drone.changeRoute.push({car:4,shelter:shelters[1]});
+	drone.changeRoute.push({car:5,shelter:shelters[2]});
+	drone.changeRoute.push({car:6,shelter:shelters[1]});
+	drone.changeRoute.push({car:7,shelter:shelters[2]});
+	drone.changeRoute.push({car:8,shelter:shelters[1]});
+	drone.changeRoute.push({car:9,shelter:shelters[2]});
+	drone.changeRoute.push({car:10,shelter:shelters[1]});
+	drone.changeRoute.push({car:11,shelter:shelters[2]});
+	drone.changeRoute.push({car:12,shelter:shelters[2]});
+	for(var i=13;i<cars.length;i++){
+		drone.changeRoute.push({car:i,shelter:shelters[1]});
+	}
+	drone2.changeRoute.push({car:0,shelter:shelters[1]});
+	drone2.changeRoute.push({car:1,shelter:shelters[2]});
+	drone2.changeRoute.push({car:2,shelter:shelters[1]});
+	drone2.changeRoute.push({car:3,shelter:shelters[2]});
+	drone2.changeRoute.push({car:4,shelter:shelters[1]});
+	drone2.changeRoute.push({car:5,shelter:shelters[2]});
+	drone2.changeRoute.push({car:6,shelter:shelters[1]});
+	drone2.changeRoute.push({car:7,shelter:shelters[2]});
+	drone2.changeRoute.push({car:8,shelter:shelters[1]});
+	drone2.changeRoute.push({car:9,shelter:shelters[2]});
+	drone2.changeRoute.push({car:10,shelter:shelters[1]});
+	drone2.changeRoute.push({car:11,shelter:shelters[2]});
+	drone2.changeRoute.push({car:12,shelter:shelters[2]});
+	for(var i=13;i<cars.length;i++){
+		drone2.changeRoute.push({car:i,shelter:shelters[1]});
+	}
+
+var step_count = 0;
+var total_count= 0;
+var dead_count = 0;
+ES.setTimeStep(10);
+
+evacSim.eachStep(function () {
+	step_count++;
+	cars.forEach(function (car) {
+
+
+		car.move();
+	});
+
+	drone.move();
+	drone2.move();
+	shelters.forEach(function (shelter) {
+		shelter.refreshLabel();
+	});
+
+
+	for(var j=0;j<Nx-1;j++){
+		for(var k=0;k<Ny-1;k++){
+			gridCarNumber[j][k] = 0
+			for(var i=0;i<cars.length;i++){
+				var x=cars[i].getLon();
+				var y=cars[i].getLat();
+
+				if(( (x>=gridMinLon+j*Dx) && (x<gridMinLon+(j+2)*Dx) ) && ( (y>=gridMinLat+k*Dy) && (y<gridMinLat+(k+2)*Dy)) ){
+					gridCarNumber[j][k]++;
+					gridCarBattery+=cars[i].battery;
+					cars.maxBattery = gridCarBattery;
+				}
+			}
+
+			var color;
+			if (gridCarNumber[j][k]>4) {
+				color = "#"+(255-gridCarNumber[j][k]*10).toString(16)+"0000"
+			} else if (gridCarNumber[j][k]<=4 && gridCarNumber[j][k]>0) {
+				color = "#0000"+(255-gridCarNumber[j][k]*10).toString(16)
+			} else {
+				color = '#ffffff'
+			}
+
+			gridRect[j][k].setOptions({
+				fillColor: color
+			})
+		}
+	}
+
+	//astarcar.move();
+});
+
+ES.setTimer(function () {
+	ES.createObject(Stopper,1288734899);
+  ES.closeNode(1288734899);
+	ES.createObject(Stopper,1288705246);
+  ES.closeNode(1288705246);
+	console.log("closed!")
+},10);
+
+    </script>
+</head>
+<body>
+<!--
+<button style="position: absolute; width: 100px; height: 100px; background-color: #ffcccc; z-index: 1000; display: block;" onclick="evacSim.start();">start</button>
+<button style="position: absolute;left: 200px; width: 100px; height: 100px; background-color: #ffcccc; z-index: 1000; display: block;" onclick="drone.remove();">drone bye</button>
+<button style="position: absolute;left: 400px; width: 100px; height: 100px; background-color: #ffcccc; z-index: 1000; display: block;" onclick="evacSim.showNodes();">ways</button>
+-->
+<div style="position: absolute; width: 100%; height: 30px; background: #000066; z-index: 2;">
+  <a href="#" style="" onclick="ES.start();">Start</a>
+  <a href="#" style="" onclick="drone.remove();">Remove Drone</a>
+  <a href="#" style="" onclick="drone2.remove();">Remove Drone2</a>
+  <a href="#" style="" onclick="evacSim.showNodes();">Show nodes</a>
+  <a href="#" style="" onclick="evacSim.showWays();">Show ways</a>
+</div>
+<div id="map_canvas"></div>
+
+</body>
+</html>
