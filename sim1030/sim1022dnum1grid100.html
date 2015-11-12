@@ -584,6 +584,56 @@ var shelters = [];
 			cars.push(ES.createObject(Car,1288720521,47).add());
 			cars.push(ES.createObject(Car,1288720521,48).add());
 			cars.push(ES.createObject(Car,1288720521,49).add());
+			cars.push(ES.createObject(Car,1288720521,50).add());
+			cars.push(ES.createObject(Car,1288720521,51).add());
+			cars.push(ES.createObject(Car,1288720521,52).add());
+			cars.push(ES.createObject(Car,1288720521,53).add());
+			cars.push(ES.createObject(Car,1288720521,54).add());
+			cars.push(ES.createObject(Car,1288720521,55).add());
+			cars.push(ES.createObject(Car,1288720521,56).add());
+			cars.push(ES.createObject(Car,1288720521,57).add());
+			cars.push(ES.createObject(Car,1288720521,58).add());
+			cars.push(ES.createObject(Car,1288720521,59).add());
+			cars.push(ES.createObject(Car,1288720521,60).add());
+			cars.push(ES.createObject(Car,1288720521,61).add());
+			cars.push(ES.createObject(Car,1288720521,62).add());
+			cars.push(ES.createObject(Car,1288720521,63).add());
+			cars.push(ES.createObject(Car,1288720521,64).add());
+			cars.push(ES.createObject(Car,1288720521,65).add());
+			cars.push(ES.createObject(Car,1288720521,66).add());
+			cars.push(ES.createObject(Car,1288720521,67).add());
+			cars.push(ES.createObject(Car,1288720521,68).add());
+			cars.push(ES.createObject(Car,1288720521,69).add());
+			cars.push(ES.createObject(Car,1288720521,70).add());
+			cars.push(ES.createObject(Car,1288720521,71).add());
+			cars.push(ES.createObject(Car,1288720521,72).add());
+			cars.push(ES.createObject(Car,1288720521,73).add());
+			cars.push(ES.createObject(Car,1288720521,74).add());
+			cars.push(ES.createObject(Car,1288720521,75).add());
+			cars.push(ES.createObject(Car,1288720521,76).add());
+			cars.push(ES.createObject(Car,1288720521,77).add());
+			cars.push(ES.createObject(Car,1288720521,78).add());
+			cars.push(ES.createObject(Car,1288720521,79).add());
+			cars.push(ES.createObject(Car,1288720521,80).add());
+			cars.push(ES.createObject(Car,1288720521,81).add());
+			cars.push(ES.createObject(Car,1288720521,82).add());
+			cars.push(ES.createObject(Car,1288720521,83).add());
+			cars.push(ES.createObject(Car,1288720521,84).add());
+			cars.push(ES.createObject(Car,1288720521,85).add());
+			cars.push(ES.createObject(Car,1288720521,86).add());
+			cars.push(ES.createObject(Car,1288720521,87).add());
+			cars.push(ES.createObject(Car,1288720521,88).add());
+			cars.push(ES.createObject(Car,1288720521,89).add());
+			cars.push(ES.createObject(Car,1288720521,90).add());
+			cars.push(ES.createObject(Car,1288720521,91).add());
+			cars.push(ES.createObject(Car,1288720521,92).add());
+			cars.push(ES.createObject(Car,1288720521,93).add());
+			cars.push(ES.createObject(Car,1288720521,94).add());
+			cars.push(ES.createObject(Car,1288720521,95).add());
+			cars.push(ES.createObject(Car,1288720521,96).add());
+			cars.push(ES.createObject(Car,1288720521,97).add());
+			cars.push(ES.createObject(Car,1288720521,98).add());
+			cars.push(ES.createObject(Car,1288720521,99).add());
 		
 		
 			//cars[0].changeRoute.push({car:3,shelter:shelters[1]});
@@ -592,7 +642,7 @@ var shelters = [];
 // var astarcar = evacSim.createObject(Car,716035194,1288712504).add(); // 川から
 
 var drone = evacSim.createObject(Drone,32.664832,128.856881);
-var drone2 = evacSim.createObject(Drone2,32.694000,128.840000);
+//var drone2 = evacSim.createObject(Drone2,32.694000,128.840000);
 	drone.changeRoute.push({car:0,shelter:shelters[1]});
 	drone.changeRoute.push({car:1,shelter:shelters[1]});
 	drone.changeRoute.push({car:2,shelter:shelters[1]});
@@ -609,7 +659,7 @@ var drone2 = evacSim.createObject(Drone2,32.694000,128.840000);
 	for(var i=13;i<cars.length;i++){
 		drone.changeRoute.push({car:i,shelter:shelters[1]});
 	}
-	drone2.changeRoute.push({car:0,shelter:shelters[1]});
+/*	drone2.changeRoute.push({car:0,shelter:shelters[1]});
 	drone2.changeRoute.push({car:1,shelter:shelters[1]});
 	drone2.changeRoute.push({car:2,shelter:shelters[1]});
 	drone2.changeRoute.push({car:3,shelter:shelters[1]});
@@ -625,7 +675,7 @@ var drone2 = evacSim.createObject(Drone2,32.694000,128.840000);
 	for(var i=13;i<cars.length;i++){
 		drone2.changeRoute.push({car:i,shelter:shelters[1]});
 	}
-
+*/
 var step_count = 0;
 var total_count= 0;
 var dead_count = 0;
@@ -640,7 +690,7 @@ evacSim.eachStep(function () {
 	});
 
 	drone.move();
-	drone2.move();
+//	drone2.move();
 	shelters.forEach(function (shelter) {
 		shelter.refreshLabel();
 	});
