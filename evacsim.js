@@ -1036,8 +1036,8 @@ var evacSim = new (function () {
         initData();
         isDataRead = true;
         setClosedNodes();
-        readyFunc();
         initObjs();
+        readyFunc();
         isInitialized = true;
       });
 

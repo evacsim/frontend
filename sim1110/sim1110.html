@@ -115,6 +115,39 @@ var gridLineY = [];
 		}
 	}
 	console.log(gridRect[1][1])
+	drone.changeRoute.push({car:0,shelter:predict_shelter_lank[shelters.length-1]});
+	drone.changeRoute.push({car:1,shelter:predict_shelter_lank[shelters.length-1]});
+	drone.changeRoute.push({car:2,shelter:predict_shelter_lank[shelters.length-1]});
+	drone.changeRoute.push({car:3,shelter:predict_shelter_lank[shelters.length-1]});
+	drone.changeRoute.push({car:4,shelter:predict_shelter_lank[shelters.length-1]});
+	drone.changeRoute.push({car:5,shelter:predict_shelter_lank[shelters.length-1]});
+	drone.changeRoute.push({car:6,shelter:predict_shelter_lank[shelters.length-1]});
+	drone.changeRoute.push({car:7,shelter:predict_shelter_lank[shelters.length-1]});
+	drone.changeRoute.push({car:8,shelter:predict_shelter_lank[shelters.length-1]});
+	drone.changeRoute.push({car:9,shelter:predict_shelter_lank[shelters.length-1]});
+	drone.changeRoute.push({car:10,shelter:predict_shelter_lank[shelters.length-1]});
+	drone.changeRoute.push({car:11,shelter:predict_shelter_lank[shelters.length-1]});
+	drone.changeRoute.push({car:12,shelter:predict_shelter_lank[shelters.length-1]});
+
+for(var i=13;i<cars.length;i++){
+		drone.changeRoute.push({car:i,shelter:predict_shelter_lank[shelters.length-1]});
+	}
+	drone2.changeRoute.push({car:0,shelter:predict_shelter_lank[shelters.length-1]});
+	drone2.changeRoute.push({car:1,shelter:predict_shelter_lank[shelters.length-1]});
+	drone2.changeRoute.push({car:2,shelter:predict_shelter_lank[shelters.length-1]});
+	drone2.changeRoute.push({car:3,shelter:predict_shelter_lank[shelters.length-1]});
+	drone2.changeRoute.push({car:4,shelter:predict_shelter_lank[shelters.length-1]});
+	drone2.changeRoute.push({car:5,shelter:predict_shelter_lank[shelters.length-1]});
+	drone2.changeRoute.push({car:6,shelter:predict_shelter_lank[shelters.length-1]});
+	drone2.changeRoute.push({car:7,shelter:predict_shelter_lank[shelters.length-1]});
+	drone2.changeRoute.push({car:8,shelter:predict_shelter_lank[shelters.length-1]});
+	drone2.changeRoute.push({car:9,shelter:predict_shelter_lank[shelters.length-1]});
+	drone2.changeRoute.push({car:10,shelter:predict_shelter_lank[shelters.length-1]});
+	drone2.changeRoute.push({car:11,shelter:predict_shelter_lank[shelters.length-1]});
+	drone2.changeRoute.push({car:12,shelter:predict_shelter_lank[shelters.length-1]});
+	for(var i=13;i<cars.length;i++){
+		drone2.changeRoute.push({car:i,shelter:predict_shelter_lank[shelters.length-1]});
+	}
 });
 
 //10クロック後、色変化
@@ -647,45 +680,12 @@ var shelters = [];
 
 var drone = evacSim.createObject(Drone,32.664832,128.856881);
 var drone2 = evacSim.createObject(Drone2,32.694000,128.840000);
-	drone.changeRoute.push({car:0,shelter:shelters[1]});
-	drone.changeRoute.push({car:1,shelter:shelters[1]});
-	drone.changeRoute.push({car:2,shelter:shelters[1]});
-	drone.changeRoute.push({car:3,shelter:shelters[1]});
-	drone.changeRoute.push({car:4,shelter:shelters[1]});
-	drone.changeRoute.push({car:5,shelter:shelters[1]});
-	drone.changeRoute.push({car:6,shelter:shelters[1]});
-	drone.changeRoute.push({car:7,shelter:shelters[1]});
-	drone.changeRoute.push({car:8,shelter:shelters[1]});
-	drone.changeRoute.push({car:9,shelter:shelters[1]});
-	drone.changeRoute.push({car:10,shelter:shelters[1]});
-	drone.changeRoute.push({car:11,shelter:shelters[1]});
-	drone.changeRoute.push({car:12,shelter:shelters[1]});
-	
-
-for(var i=13;i<cars.length;i++){
-		drone.changeRoute.push({car:i,shelter:shelters[1]});
-	}
-	drone2.changeRoute.push({car:0,shelter:shelters[1]});
-	drone2.changeRoute.push({car:1,shelter:shelters[1]});
-	drone2.changeRoute.push({car:2,shelter:shelters[1]});
-	drone2.changeRoute.push({car:3,shelter:shelters[1]});
-	drone2.changeRoute.push({car:4,shelter:shelters[1]});
-	drone2.changeRoute.push({car:5,shelter:shelters[1]});
-	drone2.changeRoute.push({car:6,shelter:shelters[1]});
-	drone2.changeRoute.push({car:7,shelter:shelters[1]});
-	drone2.changeRoute.push({car:8,shelter:shelters[1]});
-	drone2.changeRoute.push({car:9,shelter:shelters[1]});
-	drone2.changeRoute.push({car:10,shelter:shelters[1]});
-	drone2.changeRoute.push({car:11,shelter:shelters[1]});
-	drone2.changeRoute.push({car:12,shelter:shelters[1]});
-	for(var i=13;i<cars.length;i++){
-		drone2.changeRoute.push({car:i,shelter:shelters[1]});
-	}
 
 var step_count = 0;
 var total_count= 0;
 var dead_count = 0;
 ES.setTimeStep(10);
+
 
 evacSim.eachStep(function () {
 	step_count++;
