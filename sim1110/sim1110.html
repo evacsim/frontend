@@ -329,6 +329,7 @@ Car = function () {
 
 	this.setRoute = function (_from, _to,_color) {
 		this.route = ES.aStar(_from, _to,_color);
+console.log(ES.calcTotalDistance(this.route));
 		waitCount = -1;
 		wait = 0;
 		routeIndex = 0;

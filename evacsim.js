@@ -995,7 +995,13 @@ var evacSim = new (function () {
 
   };
 
-
+  this.calcTotalDistance = function (route) {
+    var totalDistance = 0;
+    for (var i=0; i<route.length-1; i++) {
+      totalDistance += this.calcDistance(route[i],route[i+1]);
+    }
+    return totalDistance;
+  };
 
   function initObjs() {
     for (var i=0; i<objInitFuncs.length; i++) {
