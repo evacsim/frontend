@@ -148,6 +148,28 @@ for(var i=13;i<cars.length;i++){
 	for(var i=13;i<cars.length;i++){
 		drone2.changeRoute.push({car:i,shelter:predict_shelter_rank[shelters.length-1]});
 	}
+	var passingNumber=0;
+	var ktotal;
+	var ltotal;
+	for(i=0;i<cars.length-2;i++){
+		for(j=i+1;j<cars.length-1;j++){
+			for(var k=0;k<cars[i].route.length-1;k++){
+				for(var l=0;l<cars[l].route.length-1;k++){
+					if(cars[i].route[k]==cars[j].route[l]){
+						ktotal=ES.calcTotlDistance(ES.aStar(cars[i].route[0],cars[i].route[k]));
+						ltotal=ES.calcTotlDistance(ES.aStar(cars[j].route[0],cars[l].route[l]));
+						if(Math.abs(ktotal-ltotal)<200){
+						pasingNumber++;
+						console.log(passingNumber)
+						}
+					}
+				}
+			}
+		}
+	}
+
+
+
 });
 
 //10クロック後、色変化
