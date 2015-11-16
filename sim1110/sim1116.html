@@ -158,25 +158,27 @@ for(var i=13;i<cars.length;i++){
       var carITotal = 0;
       var carJTotal = 0;
 
-      var l = 1;
+      var l = 0;
 
-			for(var k=1;k<cars[i].route.length-1;k++){
+	  for(var k=1;k<cars[i].route.length-1;k++){
         carITotal += ES.calcDistance(cars[i].route[k-1],cars[i].route[k])
-        while ((carITotal > carJTotal) && (l < cars[j].route.length)) {
-          carJTotal += ES.calcDistance(cars[j].route[l-1],cars[j].route[l]);
+        while ((carITotal > carJTotal) && (l < cars[j].route.length-1)) {
           l++;
-        }
-
-        if (l == cars[j].route.length) {
-          break;
+          carJTotal += ES.calcDistance(cars[j].route[l-1],cars[j].route[l]);
         }
 
         if (ES.calcDistance(cars[i].route[k],cars[j].route[l]) < 200) {
           console.log('car'+i+' route'+k+' node'+cars[i].route[k]+"\ncar"+j+' route'+l+', node'+cars[j].route[l]+"\n");
 console.log(ES.calcDistance(cars[i].route[k],cars[j].route[l]))
           passingNumber++;
+		  ES.createObject(Stopper,cars[i].route[k]);
+		  //ES.createObject(Stopper,cars[j].route[l]);
           break;
         }
+        if (l == cars[j].route.length-1) {
+          break;
+        }
+
 
       }
 		}
@@ -559,6 +561,12 @@ var Drone = function () {
 
 var Stopper = function () {
   this.init = function (_id) {
+console.log('oge')
+    this.setNodeId(_id);
+  };
+}
+var Flag = function () {
+  this.init = function (_id) {
     this.setNodeId(_id);
   };
 }
@@ -668,6 +676,7 @@ var Drone2 = function () {
 
 var Stopper = function () {
   this.init = function (_id) {
+console.log('stopper!')
     this.setNodeId(_id);
   };
 }
@@ -772,11 +781,12 @@ evacSim.eachStep(function () {
 });
 
 ES.setTimer(function () {
-	ES.createObject(Stopper,1288734899);
+/*	ES.createObject(Stopper,1288734899);
   ES.closeNode(1288734899);
 	ES.createObject(Stopper,1288705246);
   ES.closeNode(1288705246);
 	console.log("closed!")
+*/
 },10);
 
     </script>

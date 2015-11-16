@@ -1043,8 +1043,8 @@ var evacSim = new (function () {
         isDataRead = true;
         setClosedNodes();
         initObjs();
-        readyFunc();
         isInitialized = true;
+        readyFunc();
       });
 
     })
