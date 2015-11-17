@@ -459,102 +459,100 @@ var evacSim = new (function () {
     var nodeId = null;
     var icon = null;
 
-    return {
-      setLat: function (_lat) {
-        lat = _lat;
-        return this;
-      },
-      setLon: function (_lon) {
-        lon = _lon;
-        return this;
-      },
-      getLat: function () {
-        return lat;
-      },
-      getLon: function () {
-        return lon;
-      },
-      setNodeId: function (_nodeId) {
-//        nodeId = _nodeId;
+    this.setLat = function (_lat) {
+      lat = _lat;
+      return this;
+    };
+    this.setLon = function (_lon) {
+      lon = _lon;
+      return this;
+    };
+    this.getLat = function () {
+      return lat;
+    };
+    this.getLon = function () {
+      return lon;
+    };
+    this.setNodeId = function (_nodeId) {
+//      nodeId = _nodeId;
 
-        var node = getNode(_nodeId);
-        if (node) {
-          if (!node.closed) {
-            nodeId = _nodeId;
-            this.setLat(node.lat);
-            this.setLon(node.lon);
-          } else {
-            return false;
-          }
+      var node = getNode(_nodeId);
+      if (node) {
+        if (!node.closed) {
+          nodeId = _nodeId;
+          this.setLat(node.lat);
+          this.setLon(node.lon);
         } else {
-          console.error("setNodeId: 無効なnodeIdです。")
           return false;
         }
-        return true;
-      },
-      getNodeId: function () {
-        return nodeId;
-      },
-      addToLat: function (dLat) {
-        lat += dLat;
-      },
-      addToLon: function (dLon) {
-        lon += dLon;
-      },
-      add: function () {
-        return this;
-      },
-      remove: function () {
-        if (isAdded) {
-          registerDeadObject(id);
-          isAdded = false;
-        }
-        return this;
-      },
-      setIcon: function (_icon,sizeX,sizeY) {
-        if (typeof _icon == "object") {
+      } else {
+        console.error("setNodeId = 無効なnodeIdです。")
+        return false;
+      }
+      return true;
+    };
+    this.getNodeId = function () {
+      return nodeId;
+    };
+    this.addToLat = function (dLat) {
+      lat += dLat;
+    };
+    this.addToLon = function (dLon) {
+      lon += dLon;
+    };
+    this.add = function () {
+      return this;
+    };
+    this.remove = function () {
+      if (isAdded) {
+        registerDeadObject(id);
+        isAdded = false;
+      }
+      return this;
+    };
+    this.setIcon = function (_icon,sizeX,sizeY) {
+      if (typeof _icon == "object") {
+        // icon = _icon;
+        setIcon(_icon,id);
+      } else if (typeof _icon == "string") {
+        if (sizeX && sizeY) {
+          setIcon({
+            url: _icon,                     // url
+            scaledSize: new google.maps.Size(sizeX,sizeY)
+          },id);
+        } else {
           // icon = _icon;
           setIcon(_icon,id);
-        } else if (typeof _icon == "string") {
-          if (sizeX && sizeY) {
-            setIcon({
-              url: _icon,                     // url
-              scaledSize: new google.maps.Size(sizeX,sizeY)
-            },id);
-          } else {
-            // icon = _icon;
-            setIcon(_icon,id);
-          }
-        } else {
-          console.error("setIcon(): 無効な引数です")
         }
-        return this;
-      },
-      setLabel: function (_dom,_width,_height) {
-
-        var label = {};
-
-        if (_dom) {
-          label.dom = _dom;
-        } else {
-          label.dom = "";
-        }
-        if (_width) {
-          label.width = _width;
-        }
-        if (_height) {
-          label.height = _height;
-        }
-
-
-        setLabel(label,id);
-      },
-      setTimer: function (_func,_step) {
-        return setTimer(_func.bind(this),_step);  
-      },
-      killTimer: function (_id) {
-        killTimer(_id);
+      } else {
+        console.error("setIcon(): 無効な引数です")
       }
+      return this;
+    };
+    this.setLabel = function (_dom,_width,_height) {
+
+      var label = {};
+
+      if (_dom) {
+        label.dom = _dom;
+      } else {
+        label.dom = "";
+      }
+      if (_width) {
+        label.width = _width;
+      }
+      if (_height) {
+        label.height = _height;
+      }
+
+
+      setLabel(label,id);
+    };
+    this.setTimer = function (_func,_step) {
+      return setTimer(_func.bind(this),_step);  
+    };
+    this.killTimer = function (_id) {
+      killTimer(_id);
     };
   };
 
@@ -563,15 +561,14 @@ var evacSim = new (function () {
   this.createObject = function () {
     var id = getNewObjId();
 
-    var obj = new baseObject(id);
-
     var _const = arguments[0];
     var args = Array.prototype.slice.call(arguments,1,arguments.length);
     var obj;
     try {
       if (typeof _const == "function") {
 
-        $.extend(obj, new _const());
+        obj = new _const()
+        baseObject.call(obj,id)
 
         setIcon(null,id);
         setLabel(null,id);
