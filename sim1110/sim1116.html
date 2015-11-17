@@ -48,6 +48,7 @@ var gridCarNumber=new Array(Nx);
 var carsCostRank = [];
 var predict_shelter_rank = [];
 var shelter_rank1 = 1;
+var passing = [];
 for (var i=0;i<Nx;i++){
 	gridCarNumber[i]=new Array(Ny);
 }
@@ -170,6 +171,13 @@ for(var i=13;i<cars.length;i++){
         if (ES.calcDistance(cars[i].route[k],cars[j].route[l]) < 200) {
           console.log('car'+i+' route'+k+' node'+cars[i].route[k]+"\ncar"+j+' route'+l+', node'+cars[j].route[l]+"\n");
 console.log(ES.calcDistance(cars[i].route[k],cars[j].route[l]))
+		passing[passingNumber]=
+		{
+			car1:cars[i],
+			routeIndex1: k,
+			nodeId1:cars[i].route[k]
+		}
+
           passingNumber++;
 		  ES.createObject(Stopper,cars[i].route[k]);
 		  //ES.createObject(Stopper,cars[j].route[l]);
