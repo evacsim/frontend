@@ -535,7 +535,6 @@ var Drone = function () {
 	var metF2 = 1;
 	this.move = function () {
 		
-		this.evRankUpdate();
 		
 		if(this.target.getNodeId()==null){
 			this.setRoute();
@@ -562,6 +561,7 @@ var Drone = function () {
 				this.sendData();
 				this.setRoute();
 				targetShelter1++;
+				this.evRankUpdate();
 			}
 		}
 	this.target = carsCostRank[0];
@@ -605,7 +605,7 @@ var Drone = function () {
 	this.evRankUpdate = function(){
 		for(i=0;i<cars.length-1;i++){
 			for(j=i+1;j<cars.length;j++){
-				if(carsCostRank[j-1]<carsCostRank[j]){
+				if(carsCostRank[j-1].cost<carsCostRank[j].cost){
 					temp = cars[j-1];
 					carsCostRank[j-1]=cars[j];
 					carsCostRank[j]=temp;
@@ -792,7 +792,7 @@ var drone2 = evacSim.createObject(Drone2,32.694000,128.840000);
 var step_count = 0;
 var total_count= 0;
 var dead_count = 0;
-ES.setTimeStep(500);
+ES.setTimeStep(200);
 
 
 evacSim.eachStep(function () {
