@@ -32,7 +32,7 @@ ES.init();
 //海岸線に５台並べて，他の避難所に向かわせるシミュレーション
 
 var targetShelter1=0;
-var changedCarNumber = 10;
+var changedCarNumber = 15;
 var bunsan = 0;
 var heikin = 0;
 var gridRect = [];
@@ -116,6 +116,24 @@ var gridLineY = [];
 			});
 		}
 	}
+  for (var i=0; i<shelters.length; i++) {
+	  predict_shelter_rank[i]=shelters[i];
+  }
+	var temp = 0;
+	for(var i=1;i<shelters.length;i++){
+		for(var j=shelters.length-1;j>=i;j--){
+			if(predict_shelter_rank[j-1].initial_predict_battery<predict_shelter_rank[j].initial_predict_battery){
+				temp = predict_shelter_rank[j-1];
+				predict_shelter_rank[j-1]=predict_shelter_rank[j];
+				predict_shelter_rank[j]=temp;
+			}
+		}
+	}
+  console.error("shelter!");
+	console.log("0"+predict_shelter_rank[0].initial_predict_battery);
+	console.log("1"+predict_shelter_rank[1].initial_predict_battery);
+	console.log("2"+predict_shelter_rank[2].initial_predict_battery);
+	console.log(predict_shelter_rank.length)
 	console.log(gridRect[1][1])
 	drone.changeRoute.push({car:0,shelter:predict_shelter_rank[shelters.length-1]});
 	drone.changeRoute.push({car:1,shelter:predict_shelter_rank[shelters.length-1]});
@@ -198,6 +216,18 @@ for(var i=13;i<cars.length;i++){
 //	console.log(passing[0]['car1']);
 //	console.log(passing[0]);
 	changedCarNumber = (cars.length/shelters.length)-(passingNumber/shelters.length);
+	drone.evRankUpdate();
+	drone2.evRankUpdate();
+
+//for(i=1;i<cars.length;i++){
+//	for(j=cars.length-1;j>=i;j--){
+//		if(carsCostRank[j-1].cost<carsCostRank[j].cost){
+//			temp = carsCostRank[j-1];
+//			carsCostRank[j-1]=carsCostRank[j];
+//			carsCostRank[j]=temp;
+//		}
+//	}
+//}
 });
 
 //10クロック後、色変化
@@ -215,7 +245,7 @@ Car = function () {
 	this.route = [];
 	var showLabel = false;
 	this.shelter;
-	this.cost = 0;
+	this.cost = -2;
 	this.nearestShelter = 0;
 	this.refreshLabel = function () {
 		if (showLabel) {
@@ -260,7 +290,6 @@ Car = function () {
 			shelters[i].current_predict_battery += this.battery;
 //				alert(shelters[i].initial_predict_battery);
 			}
-		predict_shelter_rank[i]=shelters[i];
 		}
 /*		for(i=0;i<shelters.length-1;i++){
 			for(j=i+1;j<shelters.length;j++){
@@ -292,6 +321,7 @@ Car = function () {
 		var l = ES.calcDistance(this.route[routeIndex],this.route[routeIndex+1]);
 		wait = l/this.v;
 	
+		this.setCost();
 	}
 
 	
@@ -314,6 +344,8 @@ Car = function () {
 			}
 		}else{
 			total_count +=step_count;
+      this.cost = 0;
+      this.evRankUpdate
 			this.remove();
 			dead_count++;
 			heikin = 1/3*(shelters[0].battery+shelters[1].battery+shelters[2].battery);
@@ -375,6 +407,7 @@ Car = function () {
 				this.setRoute(this.getNodeId(),this.changeRoute[k].shelter,"red")
 				this.shelter = this.changeRoute[k].shelter;
 				this.changeRoute[k].car = 1233454;
+        this.metDrone = true;
 			}
 		}
 	}
@@ -430,26 +463,7 @@ var Shelter = function(){
 	
 	
 	};
-	this.ready = function(){
-		var temp = 0;
-		this.shelterRankUpdate = function(){
-			for(i=0;i<shelters.length-1;i++){
-				for(j=i+1;j<shelters.length;j++){
-					if(shelters[j-1].initial_predict_battery<shelters[j].initial_predict_battery){
-						temp = shelters[j-1];
-						predict_shelter_rank[j-1]=shelters[j];
-						predict_shelter_rank[j]=temp;
-					}
-				}
-			}
-			console.log("0"+predict_shelter_rank[0].initial_predict_battery);
-			console.log(predict_shelter_rank[1].initial_predict_battery);
-			console.log(predict_shelter_rank[2].initial_predict_battery);
-			console.log(shelters.length)
-		};
-			this.shelterRankUpdate();
-		
-	}
+
 	var showLabel = true;
 	var label;
 	this.refreshLabel = function () {
@@ -470,7 +484,7 @@ var Shelter = function(){
 var Drone = function () {
 	this.closedNode = [];
 	this.changeRoute = [];
-	var showLabel = true;
+	var showLabel = false;
 	var label;
 	this.refreshLabel = function () {
 		if (showLabel) {
@@ -513,7 +527,6 @@ var Drone = function () {
 				}
 			}
 		}
-		this.evRankUpdate();
 		
 
 //最も距離の近いＥＶをターゲットにする
@@ -531,6 +544,7 @@ var Drone = function () {
 		//this.target = cars[2];
 		//this.setRoute();
 	}
+
 	var metF = 0;
 	var metF2 = 1;
 	this.move = function () {
@@ -547,38 +561,26 @@ var Drone = function () {
 		this.addToLon(dLon);
 		this.addToLat(dLat);
 		this.count++;
-		if((ES.calcDistance(this,this.target)<200)&&(targetShelter1<changedCarNumber)&&(predict_shelter_rank[0].current_predict_battery>=predict_shelter_rank[2].current_predict_battery)){
+		if((ES.calcDistance(this,this.target)<200)&&(predict_shelter_rank[0].current_predict_battery>=predict_shelter_rank[2].current_predict_battery)){
+		//if (ES.calcDistance(this,this.target)<200){
 //		console.log("predict_shelter_rank[0]");
 //		console.log(predict_shelter_rank[0].current_predict_battery);
 //		console.log("predict_shelter_rank[1]");
 //		console.log(predict_shelter_rank[1].current_predict_battery);
 //		console.log("predict_shelter_rank[2]");
 //		console.log(predict_shelter_rank[2].current_predict_battery);
-			this.currentPredictBattery();
 			if (this.target.setRoute) {
 				this.target.setRoute(this.target,predict_shelter_rank[shelters.length-1],"red");
 				this.shelter = predict_shelter_rank[shelters.length-1]
 				this.sendData();
 				this.setRoute();
 				targetShelter1++;
-				this.evRankUpdate();
 			}
+  		this.evRankUpdate();
 		}
-	this.target = carsCostRank[0];
+//		this.evRankUpdate();
+	  this.target = carsCostRank[0];
 	};
-	this.currentPredictBattery = function(){
-		for(var k=0;k<cars.length;k++){
-			for(var i=0;i<shelters.length;i++){
-				shelters[i].current_predict_battery = shelters[i].battery;
-				if(cars[k].nearestShelter == shelters[i]){
-					shelters[i].current_predict_battery += cars[k].battery;
-					//alert(shelters[i].current_predict_battery);
-					//alert(cars[k].battery)
-				}
-			}
-		}
-	}
-	
 	
 	this.sendData = function(){
 		this.target.changeRoute = this.target.changeRoute.concat(this.changeRoute);
@@ -588,30 +590,33 @@ var Drone = function () {
 
 		var dist = 10000000;
 		var carnum;
-		for (var i=0; i<cars.length; i++) {
-			if ((dist > ES.calcDistance(cars[i],this)) && (!cars[i].metDrone)) {
-				dist = ES.calcDistance(cars[i],this);
-				carnum = i;
-			}
-		}
-		if (carnum >= 0) {
-			cars[carnum].metDrone = true;
-			this.target = cars[carnum];
+		//for (var i=0; i<cars.length; i++) {
+		//	if ((dist > ES.calcDistance(cars[i],this)) && (!cars[i].metDrone)) {
+		//		dist = ES.calcDistance(cars[i],this);
+		//		carnum = i;
+		//	}
+		//}
+		//if (carnum >= 0) {
+		//	cars[carnum].metDrone = true;
+			//this.target = cars[carnum];
+			this.target = carsCostRank[0];
 			droneTarget=this.target;
-		} else {
-			this.target = shelters[0];
-		}
+		//} else {
+		//	this.target = shelters[0];
+		//}
 	}
 	this.evRankUpdate = function(){
-		for(i=0;i<cars.length-1;i++){
-			for(j=i+1;j<cars.length;j++){
+		for(i=1;i<cars.length;i++){
+			for(j=cars.length-1;j>=i;j--){
 				if(carsCostRank[j-1].cost<carsCostRank[j].cost){
-					temp = cars[j-1];
-					carsCostRank[j-1]=cars[j];
+					temp = carsCostRank[j-1];
+					carsCostRank[j-1]=carsCostRank[j];
 					carsCostRank[j]=temp;
 				}
 			}
 		}
+console.error('hogehoge')
+console.log(carsCostRank)
 	};
 }
 
@@ -787,12 +792,12 @@ var shelters = [];
 // var astarcar = evacSim.createObject(Car,716035194,1288712504).add(); // 川から
 
 var drone = evacSim.createObject(Drone,32.664832,128.856881);
-var drone2 = evacSim.createObject(Drone2,32.694000,128.840000);
+var drone2 = evacSim.createObject(Drone,32.694000,128.840000);
 
 var step_count = 0;
 var total_count= 0;
 var dead_count = 0;
-ES.setTimeStep(200);
+ES.setTimeStep(10);
 
 
 evacSim.eachStep(function () {
