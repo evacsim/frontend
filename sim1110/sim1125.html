@@ -173,8 +173,8 @@ for(var i=13;i<cars.length;i++){
 	var passingNumber=0;
 	var ktotal;
 	var ltotal;
-	for(var i=0;i<cars.length-2;i++){
-		for(var j=i+1;j<cars.length-1;j++){
+	for(var i=0;i<cars.length-1;i++){
+		for(var j=i+1;j<cars.length;j++){
     		var carITotal = 0;
     		var carJTotal = 0;
 
@@ -216,12 +216,14 @@ for(var i=13;i<cars.length;i++){
 //	console.log(passing[0]['car1']);
 //	console.log(passing[0]);
 	changedCarNumber = (cars.length/shelters.length)-(passingNumber/shelters.length);
-	for(var i=0;i<cars.length-1;i++){
+	for(var i=0;i<cars.length;i++){
 		cars[i].setCost();
 	}
 	drone.evRankUpdate();
 	drone2.evRankUpdate();
-	alert(drone.target.myId);
+	
+	drone.target=carsCostRank[0];
+	drone2.target=carsCostRank[1];
 //for(i=1;i<cars.length;i++){
 //	for(j=cars.length-1;j>=i;j--){
 //		if(carsCostRank[j-1].cost<carsCostRank[j].cost){
@@ -564,7 +566,7 @@ var Drone = function () {
 		this.addToLon(dLon);
 		this.addToLat(dLat);
 		this.count++;
-		if((ES.calcDistance(this,this.target)<200)&&(predict_shelter_rank[0].current_predict_battery>=predict_shelter_rank[2].current_predict_battery)){
+		if((ES.calcDistance(this,this.target)<200)&&(predict_shelter_rank[0].current_predict_battery - carsCostRank[0].battery>=predict_shelter_rank[shelters.length-1].current_predict_battery+carsCostRank[0].battery)){
 		//if (ES.calcDistance(this,this.target)<200){
 //		console.log("predict_shelter_rank[0]");
 //		console.log(predict_shelter_rank[0].current_predict_battery);
@@ -627,7 +629,7 @@ console.log(carsCostRank)
 		for(var i=0;i<shelters.length;i++){
 			shelters[i].current_predict_battery = 0;
 		}
-		for(var j=0;j<cars.length-1;j++){
+		for(var j=0;j<cars.length;j++){
 			for(var i=0;i<shelters.length;i++){
 				if(cars[j].shelter == shelters[i]){
 //				shelters[i].initial_predict_battery += cars[j].battery;
