@@ -27,7 +27,7 @@ a:active {
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjNUH0oGxSMGagudvTMVfXSTQKwi7wWlw&sensor=TRUE" type="text/javascript"></script>
 <script src="../evacsim.js" type="text/javascript"></script>
 <script type="text/javascript">
-ES.setRoot("https://kpj.west.sd.keio.ac.jp/evac_sim/a_star/");
+ES.setRoot("../");
 ES.init();
 //海岸線に５台並べて，他の避難所に向かわせるシミュレーション
 var ev_evNum=0;
@@ -437,7 +437,6 @@ Car = function () {
 	this.setRoute = function (_from, _to,_color) {
 		this.route = ES.aStar(_from, _to,_color);
 	console.log(ES.calcTotalDistance(this.route));
-  console.log(ES.getWayWidthRank(this.route));
 		waitCount = -1;
 		wait = 0;
 		routeIndex = 0;
@@ -890,8 +889,6 @@ ES.setTimer(function () {
 	console.log("closed!")
 */
 },10);
-
-console.log(drone2)
 
     </script>
 </head>
