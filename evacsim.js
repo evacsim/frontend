@@ -81,6 +81,9 @@ var evacSim = new (function () {
     // nodesに隣接ノードのプロパティを宣言
     for (var i=0; i<nodes.length; i++) {
       nodes[i].neighbors = [];
+      nodes[i].neighborWayWidthRanks = [];
+      nodes[i].neighborWayMinWidths = [];
+      nodes[i].neighborWayMaxWidths = [];
     }
 
     // 隣接ノードのidを追加
@@ -95,6 +98,15 @@ var evacSim = new (function () {
           index2 = nodeIdToIndex[id2];
           nodes[index2].neighbors[nodes[index2].neighbors.length] = id1;
           nodes[index1].neighbors[nodes[index1].neighbors.length] = id2;
+
+          nodes[index2].neighborWayWidthRanks[nodes[index2].neighbors.length] = ways[i]['width_rank'];
+          nodes[index1].neighborWayWidthRanks[nodes[index1].neighbors.length] = ways[i]['width_rank'];
+
+          nodes[index2].neighborWayMinWidths[nodes[index2].neighbors.length] = ways[i]['width_min'];
+          nodes[index1].neighborWayMinWidths[nodes[index1].neighbors.length] = ways[i]['width_min'];
+
+          nodes[index2].neighborWayMaxWidths[nodes[index2].neighbors.length] = ways[i]['width_max'];
+          nodes[index1].neighborWayMaxWidths[nodes[index1].neighbors.length] = ways[i]['width_max'];
         }
       }
     }
@@ -233,6 +245,23 @@ var evacSim = new (function () {
       console.error("getAlt(): nodeの取得に失敗");
       return 0;
     }
+  };
+
+  this.getWayWidthRank = function (wayNodes) {
+    wayWidths = [];
+    var wayNode1;
+    var wayNode2;
+    for (var i=0; i<wayNodes.length-1; i++) {
+      wayWidths[i] = -1;
+      wayNode1 = getNode(wayNodes[i]);
+      wayNode2 = getNode(wayNodes[i+1]);
+      for (var j=0; j<wayNode1.neighbors.length; j++) {
+        if (wayNode1.neighbors[j].id == wayNode2.id) {
+          wayWidths[i] = wayNode2.neighborWayWidthRanks[j];
+        }
+      }
+    }
+    return wayWidths;
   };
 
   this.closeNode = function (obj) {
