@@ -27,11 +27,7 @@ a:active {
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjNUH0oGxSMGagudvTMVfXSTQKwi7wWlw&sensor=TRUE" type="text/javascript"></script>
 <script src="../evacsim.js" type="text/javascript"></script>
 <script type="text/javascript">
-//道幅使う場合
-ES.setRoot("../a_star/");
-ES.setNodesJSONFile("nodes.cgi");
-ES.setWaysJSONFile("ways.cgi");
-//↑
+ES.setRoot("../");
 ES.init();
 //海岸線に５台並べて，他の避難所に向かわせるシミュレーション
 var ev_evNum=0;

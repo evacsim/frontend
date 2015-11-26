@@ -247,19 +247,20 @@ var evacSim = new (function () {
     }
   };
 
-  this.getWayWidthRank = function (wayNodes) {
+  this.getWayWidthRank = function (wayNodes,_default) {
     wayWidths = [];
     var wayNode1;
     var wayNode2;
+    var defaultValue = _default ? _default : 2;
     for (var i=0; i<wayNodes.length-1; i++) {
-      wayWidths[i] = -1;
+      wayWidths[i] = defaultValue;
       wayNode1 = getNode(wayNodes[i]);
       wayNode2 = getNode(wayNodes[i+1]);
       for (var j=0; j<wayNode2.neighbors.length; j++) {
         if (wayNode1.neighbors[j] == wayNode2.id) {
           wayWidths[i] = wayNode2.neighborWayWidthRanks[j];
           if (wayWidths[i] < 0) {
-            wayWidths[i] = -1;
+            wayWidths[i] = defaultValue;
           }
         }
       }

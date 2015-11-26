@@ -27,14 +27,11 @@ a:active {
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjNUH0oGxSMGagudvTMVfXSTQKwi7wWlw&sensor=TRUE" type="text/javascript"></script>
 <script src="../evacsim.js" type="text/javascript"></script>
 <script type="text/javascript">
-//道幅使う場合
-ES.setRoot("../a_star/");
-ES.setNodesJSONFile("nodes.cgi");
-ES.setWaysJSONFile("ways.cgi");
-//↑
+ES.setRoot("../");
 ES.init();
 //海岸線に５台並べて，他の避難所に向かわせるシミュレーション
 var ev_evNum=0;
+var drone_evNum = 0;
 var targetShelter1=0;
 var bunsan = 0;
 var heikin = 0;
@@ -244,10 +241,6 @@ ES.setTimer(function () {
 	gridRect[1][1].setMap(ES.getGMapObj())
 },10)
 var Car = function () {
-};
-
-
-Car = function () {
 	this.metDrone = false;
 	this.route = [];
 	var showLabel = false;
@@ -274,10 +267,11 @@ Car = function () {
 	this.init = function (startId,myId,battery) {
 		this.myId = myId;
 		this.battery = battery ? battery : 228000; // 走行可能距離
-		this.v = 15; // 1stepにつき15m進む
+		this.v = 11; // 1stepにつき11m進む（11m/秒=40km/h）
 		this.maxBattery = this.battery;
 
-		startId = ES.randomNode();
+//		startId = ES.randomNode();
+		
 		this.setNodeId(startId)
 		this.setIcon("./../icons/car.svg",25,25);
 
@@ -371,6 +365,10 @@ Car = function () {
 							}
 					JSONdata['shelters[0].battery']= shelters[0].battery;
 					JSONdata['shelters[1].battery']= shelters[1].battery;
+					JSONdata['shelters[2].battery']= shelters[2].battery;
+					JSONdata['shelters[0].predict_battery']= shelters[0].predict_battery;
+					JSONdata['shelters[1].predict_battery']= shelters[1].predict_battery;
+					JSONdata['shelters[2].predict_battery']= shelters[2].predict_battery;
 							
 				$.ajax({
 					type : 'post',
@@ -401,8 +399,8 @@ Car = function () {
 //ＥＶ同士すれ違い判定
 	this.sendData = function(){
 		for(var i=0;i<cars.length;i++){
-//			if(ES.calcDistance(this,cars[i])<200){
-			if((ES.calcDistance(this,cars[i])<200)&&((predict_shelter_rank[0].current_predict_battery - cars[i].battery)>=(predict_shelter_rank[shelters.length-1].current_predict_battery+cars[i].battery))){
+			if(ES.calcDistance(this,cars[i])<200){
+//			if((ES.calcDistance(this,cars[i])<200)&&((predict_shelter_rank[0].current_predict_battery - cars[i].battery)>=(predict_shelter_rank[shelters.length-1].current_predict_battery+cars[i].battery))){
 				if(($.inArray(this.myId,cars[i].sentBy)<0) && (this.changeRoute.length) ){
 					alert(cars[i].myId);
 					alert(cars[i].battery);
@@ -440,6 +438,7 @@ Car = function () {
 
 	this.setRoute = function (_from, _to,_color) {
 		this.route = ES.aStar(_from, _to,_color);
+		console.log(ES.getWayWidthRank(this.route,2)) // 道幅のランクをルートから配列で取得
 	console.log(ES.calcTotalDistance(this.route));
 		waitCount = -1;
 		wait = 0;
@@ -530,7 +529,7 @@ var Drone = function () {
 			.setIcon("./../icons/drone.svg",50,50)
 
 		this.count = 0;
-		this.v = 22;//秒速１４０ｍ
+		this.v = 11;//(ドローンスピード40km/h=11m/s)
 //		this.target = cars[0];
 		this.target = false;
 		var minDistance = 10000000000;
@@ -591,6 +590,7 @@ var Drone = function () {
 				this.sendData();
 				this.setRoute();
 				targetShelter1++;
+				drone_evNum++;
 			}
   		this.evRankUpdate();
 		this.currentShelterRank();
@@ -660,12 +660,6 @@ var Drone = function () {
 	};
 }
 
-var Stopper = function () {
-  this.init = function (_id) {
-console.log('oge')
-    this.setNodeId(_id);
-  };
-}
 var Flag = function () {
   this.init = function (_id) {
     this.setNodeId(_id);
@@ -673,111 +667,6 @@ var Flag = function () {
 }
 
 
-var Drone2 = function () {
-	this.closedNode = [];
-	this.changeRoute = [];
-	var showLabel = true;
-	var label;
-	this.refreshLabel = function () {
-		if (showLabel) {
-			label = $("<div></div>")
-				.html("ターゲットの座標: <br>("+this.target.getLat()+","+this.target.getLon()+")<br>ターゲットとの距離: "+Math.round(ES.calcDistance(this,this.target))+"m")
-				.css("backgroundColor","#ffffff")
-				.css("borderStyle","solid")
-				.css("borderWidth","1px")
-				.css("borderRadius","10px")
-			this.setLabel(label,170)
-		} else {
-			this.setLabel(null);
-		}
-	};
-	this.click = function () {
-		showLabel = showLabel ? false : true;
-	}
-	this.init = function (droneLat,droneLon,myId) {
-		console.log(ES.getNodes());
-		this.myId = myId;
-		//カントリークラブ
-//		this.setLat(32.664832)
-//			.setLon(128.856881)
-		this.setLat(droneLat)
-			.setLon(droneLon)
-			.setIcon("./../icons/drone.svg",50,50)
-
-		this.count = 0;
-		this.v = 22;//秒速１４０ｍ
-		this.target = cars[0];
-		this.target = false;
-		var minDistance = 10000000000;
-		var minDensity = 0;
-		var Density = 2000;//距離が2０００m以内
-		this.target = 0;
-		for(var i=0;i<cars.length;i++){
-			for(var j=i+1;j<cars.length;j++){
-				if(ES.calcDistance(cars[i],cars[j])<Density){
-					cars[i].maxBattery += cars[j].battery;
-				}
-			}
-		}
-		for(var k=0;k<cars.length;k++){
-			if(cars[k].maxBattery>minDensity){
-				minDensity = cars[k].maxBattery;
-				this.target = cars[k];
-			}
-		}
-		//this.target = cars[2];
-		//this.setRoute();
-	}
-	var metF = 0;
-	var metF2 = 1;
-	this.move = function () {
-		if(this.target.getNodeId()==null){
-			this.setRoute();
-		}
-
-		this.refreshLabel();
-		var dir = ES.calcDirection(this,this.target);
-		var dLon = ES.meterToLon(this.v*dir.lon);
-		var dLat = ES.meterToLat(this.v*dir.lat);
-		this.addToLon(dLon);
-		this.addToLat(dLat);
-		this.count++;
-		if((ES.calcDistance(this,this.target)<200)&&(predict_shelter_rank[0].current_predict_battery - this.target.battery>=predict_shelter_rank[shelters.length-1].current_predict_battery+this.target.battery)){
-		console.log("predict_shelter_rank[0]");
-		console.log(predict_shelter_rank[0]);
-		console.log("predict_shelter_rank[1]");
-		console.log(predict_shelter_rank[1]);
-			if (this.target.setRoute) {
-				this.target.setRoute(this.target,predict_shelter_rank[shelters.length-1],"red");
-				this.shelter = predict_shelter_rank[shelters.length-1];
-				this.sendData();
-				this.setRoute();
-				targetShelter1++;
-			}
-		}
-	};
-	this.sendData = function(){
-		this.target.changeRoute = this.target.changeRoute.concat(this.changeRoute);
-	}
-	var l = 0;
-	this.setRoute = function(){
-
-		var dist = 10000000;
-		var carnum;
-		for (var i=0; i<cars.length; i++) {
-			if ((dist > ES.calcDistance(cars[i],this)) && (!cars[i].metDrone) &&(i!=droneTarget)){
-				dist = ES.calcDistance(cars[i],this);
-				carnum = i;
-			}
-		}
-		if (carnum >= 0) {
-			cars[carnum].metDrone = true;
-			this.target = cars[carnum];
-		} else {
-			this.target = shelters[0];
-		}
-	}
-}
 
 var Stopper = function () {
   this.init = function (_id) {
@@ -794,36 +683,43 @@ var shelters = [];
 	//shelters.push(ES.createObject(Shelter,1288732567).add());
 	shelters.push(ES.createObject(Shelter,1288726192).add());
 	shelters.push(ES.createObject(Shelter,1288704180).add());
-			cars.push(ES.createObject(Car,1288720521,0).add());
-			cars.push(ES.createObject(Car,1288720521,1).add());
-			cars.push(ES.createObject(Car,1288720521,2).add());
-			cars.push(ES.createObject(Car,1288720521,3).add());
-			cars.push(ES.createObject(Car,1288720521,4).add());
-			cars.push(ES.createObject(Car,1288720521,5).add());
-			cars.push(ES.createObject(Car,1288720521,6).add());
-			cars.push(ES.createObject(Car,1288720521,7).add());
-			cars.push(ES.createObject(Car,1288720521,8).add());
-			cars.push(ES.createObject(Car,1288720521,9).add());
-			cars.push(ES.createObject(Car,1288720521,10).add());
-			cars.push(ES.createObject(Car,1288720521,11).add());
-			cars.push(ES.createObject(Car,1288720521,12).add());
-			cars.push(ES.createObject(Car,1288720521,13).add());
-			cars.push(ES.createObject(Car,1288720521,14).add());
-			cars.push(ES.createObject(Car,1288720521,15).add());
-			cars.push(ES.createObject(Car,1288720521,16).add());
-			cars.push(ES.createObject(Car,1288720521,17).add());
-			cars.push(ES.createObject(Car,1288720521,18).add());
-			cars.push(ES.createObject(Car,1288720521,19).add());
-			cars.push(ES.createObject(Car,1288720521,20).add());
-			cars.push(ES.createObject(Car,1288720521,21).add());
-			cars.push(ES.createObject(Car,1288720521,22).add());
-			cars.push(ES.createObject(Car,1288720521,23).add());
-			cars.push(ES.createObject(Car,1288720521,24).add());
-			cars.push(ES.createObject(Car,1288720521,25).add());
-			cars.push(ES.createObject(Car,1288720521,26).add());
-			cars.push(ES.createObject(Car,1288720521,27).add());
-			cars.push(ES.createObject(Car,1288720521,28).add());
-			cars.push(ES.createObject(Car,1288720521,29).add());
+
+var carIds = [1288703466,1288711503,1288729401,1288715950,1288703234,1288711724,1288696704,1288732057,1288711348,1288726252,1288713502,1288711452,1288713378,1288715428,1288713050,1288714864,1288695177,1288699148,1288727565,1288704165,1288719559,1288719904,1288705481,1288734849,1288700371,1288721580,1288695824,1288731854,1288701206,1288733962];
+
+for (var i=0; i < carIds.length; i++) {
+	cars.push(ES.createObject(Car,carIds[i],i).add());
+}
+
+//			cars.push(ES.createObject(Car,1288720521,0).add());
+//			cars.push(ES.createObject(Car,1288720521,1).add());
+//			cars.push(ES.createObject(Car,1288720521,2).add());
+//			cars.push(ES.createObject(Car,1288720521,3).add());
+//			cars.push(ES.createObject(Car,1288720521,4).add());
+//			cars.push(ES.createObject(Car,1288720521,5).add());
+//			cars.push(ES.createObject(Car,1288720521,6).add());
+//			cars.push(ES.createObject(Car,1288720521,7).add());
+//			cars.push(ES.createObject(Car,1288720521,8).add());
+//			cars.push(ES.createObject(Car,1288720521,9).add());
+//			cars.push(ES.createObject(Car,1288720521,10).add());
+//			cars.push(ES.createObject(Car,1288720521,11).add());
+//			cars.push(ES.createObject(Car,1288720521,12).add());
+//			cars.push(ES.createObject(Car,1288720521,13).add());
+//			cars.push(ES.createObject(Car,1288720521,14).add());
+//			cars.push(ES.createObject(Car,1288720521,15).add());
+//			cars.push(ES.createObject(Car,1288720521,16).add());
+//			cars.push(ES.createObject(Car,1288720521,17).add());
+//			cars.push(ES.createObject(Car,1288720521,18).add());
+//			cars.push(ES.createObject(Car,1288720521,19).add());
+//			cars.push(ES.createObject(Car,1288720521,20).add());
+//			cars.push(ES.createObject(Car,1288720521,21).add());
+//			cars.push(ES.createObject(Car,1288720521,22).add());
+//			cars.push(ES.createObject(Car,1288720521,23).add());
+//			cars.push(ES.createObject(Car,1288720521,24).add());
+//			cars.push(ES.createObject(Car,1288720521,25).add());
+//			cars.push(ES.createObject(Car,1288720521,26).add());
+//			cars.push(ES.createObject(Car,1288720521,27).add());
+//			cars.push(ES.createObject(Car,1288720521,28).add());
+//			cars.push(ES.createObject(Car,1288720521,29).add());
 		
 		
 			//cars[0].changeRoute.push({car:3,shelter:shelters[1]});
