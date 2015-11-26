@@ -14,6 +14,24 @@ a {
   line-height: 30px;
   text-decoration: none;
 }
+#drone-ev-num {
+  float: left;
+  width: 50px;
+  height: 30px;
+  color: #fff;
+  text-align: center;
+  line-height: 30px;
+  text-decoration: none;
+}
+#drone-ev-num-input {
+  float: left;
+  width: 100px;
+  height: 20px;
+  text-decoration: none;
+  border-style: solid;
+  border-radius: 5px;
+  border-color: #333399; 
+}
 a:visited{
 
 }
@@ -27,11 +45,21 @@ a:active {
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjNUH0oGxSMGagudvTMVfXSTQKwi7wWlw&sensor=TRUE" type="text/javascript"></script>
 <script src="../evacsim.js" type="text/javascript"></script>
 <script type="text/javascript">
+
 ES.setRoot("../");
 ES.init();
+
+$(function () {
+	$('#drone-ev-num-input').keyup(function () {
+	  maxDroneEvNum = $(this).val();
+	});
+});
+
+
 //海岸線に５台並べて，他の避難所に向かわせるシミュレーション
 var ev_evNum=0;
 var drone_evNum = 0;
+var maxDroneEvNum = 10;
 var targetShelter1=0;
 var bunsan = 0;
 var heikin = 0;
@@ -338,8 +366,9 @@ var Car = function () {
 				routeIndex++;
 				this.setNodeId(this.route[routeIndex+1]);
 				var l = ES.calcDistance(this.route[routeIndex],this.route[routeIndex+1]);
-//			wait = Math.ceil(l/this.v);
-				wait = l/this.v - (waitCount-wait);
+				//wait = l/this.v - (waitCount-wait);
+				wait = l/((-40/3*this.routeWidth[routeIndex]+260/3)/3.6 ) - (waitCount-wait); // routeWidth=2の時60km/h, routeWidth=5の時20km/h 線形
+//				console.error(((-40/3*this.routeWidth[routeIndex]+260/3)/3.6 ));
 				this.battery -= l;
 				waitCount = 0;
 			}
@@ -438,7 +467,8 @@ var Car = function () {
 
 	this.setRoute = function (_from, _to,_color) {
 		this.route = ES.aStar(_from, _to,_color);
-		console.log(ES.getWayWidthRank(this.route,2)) // 道幅のランクをルートから配列で取得
+		//console.log(ES.getWayWidthRank(this.route,2)) // 道幅のランクをルートから配列で取得
+		this.routeWidth = ES.getWayWidthRank(this.route,2);
 	console.log(ES.calcTotalDistance(this.route));
 		waitCount = -1;
 		wait = 0;
@@ -575,7 +605,7 @@ var Drone = function () {
 		this.addToLon(dLon);
 		this.addToLat(dLat);
 		this.count++;
-		if((ES.calcDistance(this,this.target)<200)&&(predict_shelter_rank[0].current_predict_battery - this.target.battery>=predict_shelter_rank[shelters.length-1].current_predict_battery+this.target.battery)){
+		if((ES.calcDistance(this,this.target)<200)&&(predict_shelter_rank[0].current_predict_battery - this.target.battery>=predict_shelter_rank[shelters.length-1].current_predict_battery+this.target.battery)&&(drone_evNum<maxDroneEvNum)){
 //		if (ES.calcDistance(this,this.target)<200){
 //		}
 //		console.log("predict_shelter_rank[0]");
@@ -591,6 +621,7 @@ var Drone = function () {
 				this.setRoute();
 				targetShelter1++;
 				drone_evNum++;
+				$('#drone-ev-num').text(drone_evNum);
 			}
   		this.evRankUpdate();
 		this.currentShelterRank();
@@ -684,8 +715,7 @@ var shelters = [];
 	shelters.push(ES.createObject(Shelter,1288726192).add());
 	shelters.push(ES.createObject(Shelter,1288704180).add());
 
-var carIds = [1288703466,1288711503,1288729401,1288715950,1288703234,1288711724,1288696704,1288732057,1288711348,1288726252,1288713502,1288711452,1288713378,1288715428,1288713050,1288714864,1288695177,1288699148,1288727565,1288704165,1288719559,1288719904,1288705481,1288734849,1288700371,1288721580,1288695824,1288731854,1288701206,1288733962];
-
+var carIds = [1288731394,1288732985,1288730578,1288734101,1288701562,1288733752,1288728492,1288715100,1288731587,1288696642,1288700575,1288703633,1288705357,1288713552,1288726606,1288714019,1288720648,1288704164,1288728905,1288697791,1288726931,1288721860,1288704310,1288727411,1288699185,1288711445,1288702535,1288702618,1288734591,1288731619];
 for (var i=0; i < carIds.length; i++) {
 	cars.push(ES.createObject(Car,carIds[i],i).add());
 }
@@ -804,6 +834,10 @@ ES.setTimer(function () {
   <a href="#" style="" onclick="drone2.remove();">Remove Drone2</a>
   <a href="#" style="" onclick="evacSim.showNodes();">Show nodes</a>
   <a href="#" style="" onclick="evacSim.showWays();">Show ways</a>
+  <div id="drone-ev-num">
+  0
+  </div>
+  <input type="text" id="drone-ev-num-input" value="10">
 </div>
 <div id="map_canvas"></div>
 
