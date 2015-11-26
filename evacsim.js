@@ -41,19 +41,19 @@ var evacSim = new (function () {
 
 // 設定
   var root = ''
+  var nodesJSONFile = 'nodes.json'
+  var waysJSONFile = 'ways.json'
   var timeStep = 100;
   var mapCenterLat = 32.695528;
   var mapCenterLon = 128.840861;
   var domId = "map_canvas";
 
   function nodesUrl() {
-    return root + "nodes.json";
+    return root + nodesJSONFile;
   }
   function waysUrl() {
-    return root + "ways.json";
+    return root + waysJSONFile;
   }
-
-
 
   function initGMap(_callback) {
     var dfd = new $.Deferred;
@@ -902,7 +902,15 @@ var evacSim = new (function () {
   this.setRoot = function (_root) {
     root = _root;
   };
-  	
+
+  this.setNodesJSONFile = function (_name) {
+    nodesJSONFile = _name;
+  };
+
+  this.setWaysJSONFile = function (_name) {
+    waysJSONFile = _name;
+  };
+
 
 // 経路探索
   this.aStar = function (_start,_goal,lineColor) {
