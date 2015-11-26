@@ -99,14 +99,14 @@ var evacSim = new (function () {
           nodes[index2].neighbors[nodes[index2].neighbors.length] = id1;
           nodes[index1].neighbors[nodes[index1].neighbors.length] = id2;
 
-          nodes[index2].neighborWayWidthRanks[nodes[index2].neighbors.length] = ways[i]['width_rank'];
-          nodes[index1].neighborWayWidthRanks[nodes[index1].neighbors.length] = ways[i]['width_rank'];
+          nodes[index2].neighborWayWidthRanks[nodes[index2].neighborWayWidthRanks.length] = ways[i]['width_rank'];
+          nodes[index1].neighborWayWidthRanks[nodes[index1].neighborWayWidthRanks.length] = ways[i]['width_rank'];
 
-          nodes[index2].neighborWayMinWidths[nodes[index2].neighbors.length] = ways[i]['width_min'];
-          nodes[index1].neighborWayMinWidths[nodes[index1].neighbors.length] = ways[i]['width_min'];
+          nodes[index2].neighborWayMinWidths[nodes[index2].neighborWayMinWidths.length] = ways[i]['width_min'];
+          nodes[index1].neighborWayMinWidths[nodes[index1].neighborWayMinWidths.length] = ways[i]['width_min'];
 
-          nodes[index2].neighborWayMaxWidths[nodes[index2].neighbors.length] = ways[i]['width_max'];
-          nodes[index1].neighborWayMaxWidths[nodes[index1].neighbors.length] = ways[i]['width_max'];
+          nodes[index2].neighborWayMaxWidths[nodes[index2].neighborWayMaxWidths.length] = ways[i]['width_max'];
+          nodes[index1].neighborWayMaxWidths[nodes[index1].neighborWayMaxWidths.length] = ways[i]['width_max'];
         }
       }
     }
@@ -255,9 +255,12 @@ var evacSim = new (function () {
       wayWidths[i] = -1;
       wayNode1 = getNode(wayNodes[i]);
       wayNode2 = getNode(wayNodes[i+1]);
-      for (var j=0; j<wayNode1.neighbors.length; j++) {
-        if (wayNode1.neighbors[j].id == wayNode2.id) {
+      for (var j=0; j<wayNode2.neighbors.length; j++) {
+        if (wayNode1.neighbors[j] == wayNode2.id) {
           wayWidths[i] = wayNode2.neighborWayWidthRanks[j];
+          if (wayWidths[i] < 0) {
+            wayWidths[i] = -1;
+          }
         }
       }
     }
