@@ -252,8 +252,11 @@ for(var i=13;i<cars.length;i++){
 	for(var i=0;i<cars.length;i++){
 		drone.carsCostRank[i]=cars[i];
 		drone2.carsCostRank[i]=cars[i];
-		cars[i].setCost();
+		//cars[i].setCost();
 	}
+	drone.setCost();
+	drone2.setCost();
+
 	drone.evRankUpdate();
 	drone2.evRankUpdate();
 	
@@ -350,7 +353,7 @@ var Car = function () {
 		var l = ES.calcDistance(this.route[routeIndex],this.route[routeIndex+1]);
 		wait = l/this.v;
 	
-		this.setCost();
+		//this.setCost();
 	}
 
 	
@@ -358,7 +361,7 @@ var Car = function () {
 		this.refreshLabel();
 		this.sendData();
 		this.receiveData();
-		this.setCost();
+		//this.setCost();
 		if (routeIndex < this.route.length -2 && this.battery>0) {
 
 			waitCount++;
@@ -465,15 +468,15 @@ var Car = function () {
 		}
 	}
 
-	this.setCost = function(){
-//		console.log(predict_shelter_rank[shelters.length-1]);
-		if(this.shelter==predict_shelter_rank[0]){
-			shelter_rank1 = 1;
-		}else{
-			shelter_rank1 = 0;
-		}
-		this.cost = shelter_rank1*(this.battery+ES.calcDistance(this,this.shelter)-ES.calcDistance(this,drone));
-	};
+//	this.setCost = function(){
+////		console.log(predict_shelter_rank[shelters.length-1]);
+//		if(this.shelter==predict_shelter_rank[0]){
+//			shelter_rank1 = 1;
+//		}else{
+//			shelter_rank1 = 0;
+//		}
+//		this.cost = shelter_rank1*(this.battery+ES.calcDistance(this,this.shelter)-ES.calcDistance(this,drone));
+//	};
 
 	this.setRoute = function (_from, _to,_color) {
 		this.route = ES.aStar(_from, _to,_color);
@@ -546,7 +549,8 @@ var Drone = function () {
 	this.refreshLabel = function () {
 		if (showLabel) {
 			label = $("<div></div>")
-				.html("ターゲットの座標: <br>("+this.target.getLat()+","+this.target.getLon()+")<br>ターゲットとの距離: "+Math.round(ES.calcDistance(this,this.target))+"m"+"<br>ターゲットID"+this.target.myId+"<br>ターゲットコスト"+this.target.cost)
+console.log(this.carsCost)
+				.html("ターゲットの座標: <br>("+this.target.getLat()+","+this.target.getLon()+")<br>ターゲットとの距離: "+Math.round(ES.calcDistance(this,this.target))+"m"+"<br>ターゲットID"+this.target.myId+"<br>ターゲットコスト"+this.carsCost[this.target.myId])
 				.css("backgroundColor","#ffffff")
 				.css("borderStyle","solid")
 				.css("borderWidth","1px")
@@ -559,6 +563,11 @@ var Drone = function () {
 	this.click = function () {
 		showLabel = showLabel ? false : true;
 	}
+
+	this.ready = function () {
+		this.setCost();
+	};
+
 	this.init = function (droneLat,droneLon,myId) {
 		this.myId = myId;
 		console.log(ES.getNodes());
@@ -603,9 +612,23 @@ var Drone = function () {
 		//this.setRoute();
 	}
 
+
+	this.carsCost = [];
+	this.setCost = function(){
+		for (var i=1; i<cars.length; i++) {
+			if(cars[i].shelter==predict_shelter_rank[0]){
+				shelter_rank1 = 1;
+			}else{
+				shelter_rank1 = 0;
+			}
+			this.carsCost[i] = shelter_rank1*(cars[i].battery+ES.calcDistance(cars[i],cars[i].shelter)-ES.calcDistance(cars[i],this));
+		}
+	};
+
 	var metF = 0;
 	var metF2 = 1;
 	this.move = function () {
+		this.setCost();
 		if(this.target.getNodeId()==null){
 			this.setRoute();
 		}
@@ -669,7 +692,7 @@ var Drone = function () {
 	this.evRankUpdate = function(){
 		for(i=1;i<cars.length;i++){
 			for(j=cars.length-1;j>=i;j--){
-				if(this.carsCostRank[j-1].cost<this.carsCostRank[j].cost){
+				if(this.carsCost[j-1]<this.carsCost[j]){
 					temp = this.carsCostRank[j-1];
 					this.carsCostRank[j-1]=this.carsCostRank[j];
 					this.carsCostRank[j]=temp;
