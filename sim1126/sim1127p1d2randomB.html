@@ -14,6 +14,24 @@ a {
   line-height: 30px;
   text-decoration: none;
 }
+#drone-ev-num {
+  float: left;
+  width: 50px;
+  height: 30px;
+  color: #fff;
+  text-align: center;
+  line-height: 30px;
+  text-decoration: none;
+}
+#drone-ev-num-input {
+  float: left;
+  width: 100px;
+  height: 20px;
+  text-decoration: none;
+  border-style: solid;
+  border-radius: 5px;
+  border-color: #333399; 
+}
 a:visited{
 
 }
@@ -27,10 +45,20 @@ a:active {
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjNUH0oGxSMGagudvTMVfXSTQKwi7wWlw&sensor=TRUE" type="text/javascript"></script>
 <script src="../evacsim.js" type="text/javascript"></script>
 <script type="text/javascript">
+
 ES.setRoot("../");
 ES.init();
+
+$(function () {
+	$('#drone-ev-num-input').keyup(function () {
+	  maxDroneEvNum = $(this).val();
+	});
+});
+
 //海岸線に５台並べて，他の避難所に向かわせるシミュレーション
 var ev_evNum=0;
+var drone_evNum = 0;
+var maxDroneEvNum = 10;
 var targetShelter1=0;
 var bunsan = 0;
 var heikin = 0;
@@ -49,8 +77,7 @@ var predict_shelter_rank = [];
 var shelter_rank1 = 1;
 var passing = [];
 var temp = 0;
-var startIds = [];
-var evBatterys = [];
+var deadCarId = 0;
 for (var i=0;i<Nx;i++){
 	gridCarNumber[i]=new Array(Ny);
 }
@@ -153,6 +180,13 @@ var gridLineY = [];
 for(var i=13;i<cars.length;i++){
 		drone.changeRoute.push({car:i,shelter:predict_shelter_rank[shelters.length-1]});
 	}
+//一台のみに最初に情報を与えておく場合
+//	cars[17].changeRoute = cars[17].changeRoute.concat(drone.changeRoute);
+//	cars[17].metDrone = true;
+//	alert(cars[17].changeRoute.length);
+
+
+
 	drone2.changeRoute.push({car:0,shelter:predict_shelter_rank[shelters.length-1]});
 	drone2.changeRoute.push({car:1,shelter:predict_shelter_rank[shelters.length-1]});
 	drone2.changeRoute.push({car:2,shelter:predict_shelter_rank[shelters.length-1]});
@@ -233,9 +267,6 @@ for(var i=13;i<cars.length;i++){
 //		}
 //	}
 //}
-	console.log(JSON.stringify(startIds));
-	console.log(JSON.stringify(evBatterys));
-	
 });
 
 //10クロック後、色変化
@@ -243,12 +274,8 @@ ES.setTimer(function () {
 	gridRect[1][1].fillColor = "#0000ff";
 	gridRect[1][1].setMap(null)
 	gridRect[1][1].setMap(ES.getGMapObj())
-},1)
+},10)
 var Car = function () {
-};
-
-
-Car = function () {
 	this.metDrone = false;
 	this.route = [];
 	var showLabel = false;
@@ -274,15 +301,16 @@ Car = function () {
 	}
 	this.init = function (startId,myId,battery) {
 		this.myId = myId;
-		//this.battery = battery ? battery : 114000; // 走行可能距離
-		this.battery = battery ? battery : 114000+Math.round(Math.random()*114000); // 走行可能距離
-		
-		evBatterys.push(this.battery);
+//		this.battery = battery ? battery : 180000; // 走行可能距離
+//		this.battery = battery ? battery : 150000; // 走行可能距離
+			this.battery = carBatterys[this.myId];
+//			alert(this.battery);
+//		this.battery = battery ? battery : Math.round(114000+114000*Math.random()); // 走行可能距離
 		this.v = 11; // 1stepにつき11m進む（11m/秒=40km/h）
 		this.maxBattery = this.battery;
 
-		startId = ES.randomNode();
-		startIds.push(startId);
+//		startId = ES.randomNode();
+		
 		this.setNodeId(startId)
 		this.setIcon("./../icons/car.svg",25,25);
 
@@ -349,8 +377,9 @@ Car = function () {
 				routeIndex++;
 				this.setNodeId(this.route[routeIndex+1]);
 				var l = ES.calcDistance(this.route[routeIndex],this.route[routeIndex+1]);
-//			wait = Math.ceil(l/this.v);
-				wait = l/this.v - (waitCount-wait);
+				//wait = l/this.v - (waitCount-wait);
+				wait = l/((-40/3*this.routeWidth[routeIndex]+260/3)/3.6 ) - (waitCount-wait); // routeWidth=2の時60km/h, routeWidth=5の時20km/h 線形
+//				console.error(((-40/3*this.routeWidth[routeIndex]+260/3)/3.6 ));
 				this.battery -= l;
 				waitCount = 0;
 			}
@@ -359,10 +388,22 @@ Car = function () {
       this.cost = 0;
 //drone.evRankUpdate();
 //drone2.evRankUpdate();
+			deadCarId = this.myId;
 			this.remove();
 			dead_count++;
 			heikin = 1/3*(shelters[0].battery+shelters[1].battery+shelters[2].battery);
 			bunsan = 1/3*((heikin-shelters[0].battery)*(heikin-shelters[0].battery)+(heikin-shelters[1].battery)*(heikin-shelters[1].battery)+(heikin-shelters[2].battery)*(heikin-shelters[2].battery));
+			//removeされたEVがdrone.targetだった場合の処理
+			if(drone.target.myId == deadCarId){
+				drone.evRankUpdate();
+				drone.target = carsCostRank[0];
+			}
+			if(drone2.target.myId == deadCarId){
+				drone2.evRankUpdate();
+				drone2.target = carsCostRank[0];
+			}
+			this.shelter.carNum++;
+			this.shelter.battery += this.battery;
 			if(dead_count == cars.length){
 //				alert(ev_evNum);
 				var JSONdata = {
@@ -374,12 +415,13 @@ Car = function () {
 								carNum2: shelters[2].carNum,
 								bunsan:bunsan
 							}
-					JSONdata['shelters[0].battery']= shelters[0].battery;
-					JSONdata['shelters[1].battery']= shelters[1].battery;
-					JSONdata['shelters[2].battery']= shelters[2].battery;
-					JSONdata['shelters[0].predict_battery']= shelters[0].predict_battery;
-					JSONdata['shelters[1].predict_battery']= shelters[1].predict_battery;
-					JSONdata['shelters[2].predict_battery']= shelters[2].predict_battery;
+					JSONdata['shelters[0].battery']=Math.round(16/180*shelters[0].battery);
+					JSONdata['shelters[1].battery']=Math.round(16/180*shelters[1].battery);
+					JSONdata['shelters[2].battery']=Math.round(16/180*shelters[2].battery);
+					JSONdata['shelters[0].predict_battery']=Math.round(16/180*shelters[0].predict_battery);
+					JSONdata['shelters[1].predict_battery']=Math.round(16/180*shelters[1].predict_battery);
+					JSONdata['shelters[2].predict_battery']=Math.round(16/180*shelters[2].predict_battery);
+					JSONdata['date']=1128;
 							
 				$.ajax({
 					type : 'post',
@@ -399,8 +441,6 @@ Car = function () {
 					}
 				});
 			}
-			this.shelter.carNum++;
-			this.shelter.battery += this.battery;
 		}
 	};
 	
@@ -410,10 +450,14 @@ Car = function () {
 //ＥＶ同士すれ違い判定
 	this.sendData = function(){
 		for(var i=0;i<cars.length;i++){
-//			if(ES.calcDistance(this,cars[i])<200){
-			if((ES.calcDistance(this,cars[i])<200)&&((predict_shelter_rank[0].current_predict_battery - cars[i].battery)>=(predict_shelter_rank[shelters.length-1].current_predict_battery+cars[i].battery))){
+//			if(ES.calcDistance(this,cars[i])<200){//すれ違い通信あり
+			if((ES.calcDistance(this,cars[i])<200)&&(this.myId!=cars[i].myId)){//すれ違い通信あり
+//			if((ES.calcDistance(this,cars[i])<0)&&(this.myId!=cars[i].myId)){//すれ違い通信なし
+//			if(ES.calcDistance(this,cars[i])<0){//すれ違い通信なし
+//			if((ES.calcDistance(this,cars[i])<200)&&((predict_shelter_rank[0].current_predict_battery - cars[i].battery)>=(predict_shelter_rank[shelters.length-1].current_predict_battery+cars[i].battery))){
 				if(($.inArray(this.myId,cars[i].sentBy)<0) && (this.changeRoute.length) ){
-//					alert(cars[i].myId);
+					alert(cars[i].myId);
+					alert(this.myId);
 //					alert(cars[i].battery);
 					cars[i].sentBy.push(this.myId);
 					cars[i].changeRoute = cars[i].changeRoute.concat(this.changeRoute);
@@ -421,7 +465,6 @@ Car = function () {
 					ev_evNum++;
 //					alert((predict_shelter_rank[0].current_predict_battery - cars[i].battery)-(predict_shelter_rank[shelters.length-1].current_predict_battery+cars[i].battery));
 					drone.currentShelterRank();
-					
 				}
 			}
 		}
@@ -449,7 +492,8 @@ Car = function () {
 
 	this.setRoute = function (_from, _to,_color) {
 		this.route = ES.aStar(_from, _to,_color);
-		console.log(ES.getWayWidthRank(this.route,2)) // 道幅のランクをルートから配列で取得
+		//console.log(ES.getWayWidthRank(this.route,2)) // 道幅のランクをルートから配列で取得
+		this.routeWidth = ES.getWayWidthRank(this.route,2);
 	console.log(ES.calcTotalDistance(this.route));
 		waitCount = -1;
 		wait = 0;
@@ -495,7 +539,7 @@ var Shelter = function(){
 	this.refreshLabel = function () {
 		if (showLabel) {
 			label = $("<div></div>")
-				.html("避難完了EV: "+this.carNum+"台<br>バッテリー量:"+Math.round(this.battery)+"m<br>予想バッテリー量:"+Math.round(this.initial_predict_battery)+"m<br>current:"+Math.round(this.current_predict_battery))
+				.html("避難完了EV: "+this.carNum+"台<br>バッテリー量:"+Math.round(16/180*this.battery)+"Wh<br>予想バッテリー量:"+Math.round(16/180*this.initial_predict_battery)+"Wh<br>current:"+Math.round(16/180*this.current_predict_battery)+"Wh")
 				.css("backgroundColor","#ffffff")
 				.css("borderStyle","solid")
 				.css("borderWidth","1px")
@@ -586,7 +630,7 @@ var Drone = function () {
 		this.addToLon(dLon);
 		this.addToLat(dLat);
 		this.count++;
-		if((ES.calcDistance(this,this.target)<200)&&(predict_shelter_rank[0].current_predict_battery - this.target.battery>=predict_shelter_rank[shelters.length-1].current_predict_battery+this.target.battery)){
+		if((ES.calcDistance(this,this.target)<200)&&(predict_shelter_rank[0].current_predict_battery - this.target.battery>=predict_shelter_rank[shelters.length-1].current_predict_battery+this.target.battery)&&(drone_evNum<maxDroneEvNum)){
 //		if (ES.calcDistance(this,this.target)<200){
 //		}
 //		console.log("predict_shelter_rank[0]");
@@ -601,15 +645,18 @@ var Drone = function () {
 				this.sendData();
 				this.setRoute();
 				targetShelter1++;
+				drone_evNum++;
+				$('#drone-ev-num').text(drone_evNum);
+//				alert("drone-ev");
+//				this.remove();
 			}
   		this.evRankUpdate();
-		this.currentShelterRank();
+		this.currentShelterRank()
 		}
 //		this.evRankUpdate();
-		if(this.myId == 0){
-			this.target = carsCostRank[0];
-		}else{
-			this.target = carsCostRank[1];
+		this.target = carsCostRank[0];
+		if(carsCostRank[0].cost==0){
+			this.remove();
 		}
 	};
 	
@@ -670,12 +717,6 @@ var Drone = function () {
 	};
 }
 
-var Stopper = function () {
-  this.init = function (_id) {
-console.log('oge')
-    this.setNodeId(_id);
-  };
-}
 var Flag = function () {
   this.init = function (_id) {
     this.setNodeId(_id);
@@ -683,111 +724,6 @@ var Flag = function () {
 }
 
 
-var Drone2 = function () {
-	this.closedNode = [];
-	this.changeRoute = [];
-	var showLabel = true;
-	var label;
-	this.refreshLabel = function () {
-		if (showLabel) {
-			label = $("<div></div>")
-				.html("ターゲットの座標: <br>("+this.target.getLat()+","+this.target.getLon()+")<br>ターゲットとの距離: "+Math.round(ES.calcDistance(this,this.target))+"m")
-				.css("backgroundColor","#ffffff")
-				.css("borderStyle","solid")
-				.css("borderWidth","1px")
-				.css("borderRadius","10px")
-			this.setLabel(label,170)
-		} else {
-			this.setLabel(null);
-		}
-	};
-	this.click = function () {
-		showLabel = showLabel ? false : true;
-	}
-	this.init = function (droneLat,droneLon,myId) {
-		console.log(ES.getNodes());
-		this.myId = myId;
-		//カントリークラブ
-//		this.setLat(32.664832)
-//			.setLon(128.856881)
-		this.setLat(droneLat)
-			.setLon(droneLon)
-			.setIcon("./../icons/drone.svg",50,50)
-
-		this.count = 0;
-		this.v = 22;//秒速１４０ｍ
-		this.target = cars[0];
-		this.target = false;
-		var minDistance = 10000000000;
-		var minDensity = 0;
-		var Density = 2000;//距離が2０００m以内
-		this.target = 0;
-		for(var i=0;i<cars.length;i++){
-			for(var j=i+1;j<cars.length;j++){
-				if(ES.calcDistance(cars[i],cars[j])<Density){
-					cars[i].maxBattery += cars[j].battery;
-				}
-			}
-		}
-		for(var k=0;k<cars.length;k++){
-			if(cars[k].maxBattery>minDensity){
-				minDensity = cars[k].maxBattery;
-				this.target = cars[k];
-			}
-		}
-		//this.target = cars[2];
-		//this.setRoute();
-	}
-	var metF = 0;
-	var metF2 = 1;
-	this.move = function () {
-		if(this.target.getNodeId()==null){
-			this.setRoute();
-		}
-
-		this.refreshLabel();
-		var dir = ES.calcDirection(this,this.target);
-		var dLon = ES.meterToLon(this.v*dir.lon);
-		var dLat = ES.meterToLat(this.v*dir.lat);
-		this.addToLon(dLon);
-		this.addToLat(dLat);
-		this.count++;
-		if((ES.calcDistance(this,this.target)<200)&&(predict_shelter_rank[0].current_predict_battery - this.target.battery>=predict_shelter_rank[shelters.length-1].current_predict_battery+this.target.battery)){
-		console.log("predict_shelter_rank[0]");
-		console.log(predict_shelter_rank[0]);
-		console.log("predict_shelter_rank[1]");
-		console.log(predict_shelter_rank[1]);
-			if (this.target.setRoute) {
-				this.target.setRoute(this.target,predict_shelter_rank[shelters.length-1],"red");
-				this.shelter = predict_shelter_rank[shelters.length-1];
-				this.sendData();
-				this.setRoute();
-				targetShelter1++;
-			}
-		}
-	};
-	this.sendData = function(){
-		this.target.changeRoute = this.target.changeRoute.concat(this.changeRoute);
-	}
-	var l = 0;
-	this.setRoute = function(){
-
-		var dist = 10000000;
-		var carnum;
-		for (var i=0; i<cars.length; i++) {
-			if ((dist > ES.calcDistance(cars[i],this)) && (!cars[i].metDrone) &&(i!=droneTarget)){
-				dist = ES.calcDistance(cars[i],this);
-				carnum = i;
-			}
-		}
-		if (carnum >= 0) {
-			cars[carnum].metDrone = true;
-			this.target = cars[carnum];
-		} else {
-			this.target = shelters[0];
-		}
-	}
-}
 
 var Stopper = function () {
   this.init = function (_id) {
@@ -804,36 +740,55 @@ var shelters = [];
 	//shelters.push(ES.createObject(Shelter,1288732567).add());
 	shelters.push(ES.createObject(Shelter,1288726192).add());
 	shelters.push(ES.createObject(Shelter,1288704180).add());
-			cars.push(ES.createObject(Car,1288720521,0).add());
-			cars.push(ES.createObject(Car,1288720521,1).add());
-			cars.push(ES.createObject(Car,1288720521,2).add());
-			cars.push(ES.createObject(Car,1288720521,3).add());
-			cars.push(ES.createObject(Car,1288720521,4).add());
-			cars.push(ES.createObject(Car,1288720521,5).add());
-			cars.push(ES.createObject(Car,1288720521,6).add());
-			cars.push(ES.createObject(Car,1288720521,7).add());
-			cars.push(ES.createObject(Car,1288720521,8).add());
-			cars.push(ES.createObject(Car,1288720521,9).add());
-			cars.push(ES.createObject(Car,1288720521,10).add());
-			cars.push(ES.createObject(Car,1288720521,11).add());
-			cars.push(ES.createObject(Car,1288720521,12).add());
-			cars.push(ES.createObject(Car,1288720521,13).add());
-			cars.push(ES.createObject(Car,1288720521,14).add());
-			cars.push(ES.createObject(Car,1288720521,15).add());
-			cars.push(ES.createObject(Car,1288720521,16).add());
-			cars.push(ES.createObject(Car,1288720521,17).add());
-			cars.push(ES.createObject(Car,1288720521,18).add());
-			cars.push(ES.createObject(Car,1288720521,19).add());
-			cars.push(ES.createObject(Car,1288720521,20).add());
-			cars.push(ES.createObject(Car,1288720521,21).add());
-			cars.push(ES.createObject(Car,1288720521,22).add());
-			cars.push(ES.createObject(Car,1288720521,23).add());
-			cars.push(ES.createObject(Car,1288720521,24).add());
-			cars.push(ES.createObject(Car,1288720521,25).add());
-			cars.push(ES.createObject(Car,1288720521,26).add());
-			cars.push(ES.createObject(Car,1288720521,27).add());
-			cars.push(ES.createObject(Car,1288720521,28).add());
-			cars.push(ES.createObject(Car,1288720521,29).add());
+
+//var carIds = [1288731394,1288732985,1288730578,1288734101,1288701562,1288733752,1288728492,1288715100,1288731587,1288696642,1288700575,1288703633,1288705357,1288713552,1288726606,1288714019,1288720648,1288704164,1288728905,1288697791,1288726931,1288721860,1288704310,1288727411,1288699185,1288711445,1288702535,1288702618,1288734591,1288731619];
+var carIds = [1288714981,1288699743,1288695189,1288719154,1288711292,1288719502,1288726945,1288706551,1288720091,1288721891,1288727861,1288726846,1288715210,1288730736,1288696782,1288732157,1288712511,1288722885,1288694784,1288735309,1288718335,1288718875,1288705161,1288716274,1288723840,1288716195,2707936858,1288714435,1288706165,1288694393];
+//var carIds = [1288694278,1288725018,1288727124,1288719449,1288699696,1288730439,1288734635,1288704885,1288721859,1288716743,1288694300,1288701240,1288731865,1288696250,1288716715,1288708943,1288696161,1288715713,1288723533,1288699093,1288695508,1288722460,1288705124,1288705488,1288708584,1288701337,1288724789,1288722431,1288706095,1288726789]
+//var carIds = [1288701141,1288734552,1288728966,1288730350,1288695092,1288717485,1288718857,1288704911,1288713601,1288702814,1288722518,1288694834,1288706777,1288700173,1288714078,1288733010,1288712102,1288708205,1288717196,1288720691,1288694229,1288696995,1288719025,1288706886,1288706487,1288717151,1288734748,1288705696,1288694456,1288711288]
+//var carIds = [1288713373,1288716500,1288694913,1288720147,1288721163,1288703587,1288719113,1288731483,1288720053,1288705035,1288705546,1288696810,1288720913,1288696492,1288695177,1288694091,1288695594,1288727614,1288694232,1288724706,1288730490,1288695271,1288728197,1288722378,1288694424,1288727556,1288694998,1288726325,1288718069,1288697063]
+//var carIds = [1288723271,1288723515,1288701368,1288732385,1288712474,1288704694,1288725837,1288721148,1288717487,1288702788,1288704176,1288713013,1288698243,1288732532,1288707940,1288694141,1288733459,1288714033,1288704057,1288715804,1288716145,1288706698,1288706808,1288723839,1288730024,1288703077,1288708066,1288716882,1288708515,1288715284]
+//var carIds = [1288731834,1288726783,1288714766,2707936857,1288695232,1288716451,1288716179,1288708675,1288704929,1288715396,1288704291,1288733883,1288732882,1288726980,1288705253,1288726922,1288698346,1288722740,1288724421,1288728905,1288731214,1288727424,1288711290,1288731182,1288704579,1288716933,1288696034,1288724284,1288707395,1288727434]
+//var carIds = [1288715527,1288704579,1288708230,1288732464,1288720053,1288719078,1288705940,1288731577,1288713094,1288702468,1288700426,1288722532,1288705508,1288701767,1288729822,1288708564,1288700674,1288707896,1288717573,1288708218,1288734791,1288719109,1288703308,1288702861,1288719267,1288704646,1288723809,1288705976,1288704074,1288713043]
+//var carIds = [1288718504,1288718059,1288732608,1288700829,1288713788,1288719012,1288700719,1288719573,1288699685,1288700759,1288731380,1288733664,1288731837,1288714371,1288703937,1288697070,1288709070,1288733851,1288731832,1288727481,1288700466,1288708851,1288732956,1288708882,1288707450,1288732811,1288724956,1288700843,1288723534,1288733750]
+//var carIds = [1288703209,1288722506,1288734156,1288724959,1288721841,1288715527,1288696013,1288718934,1288732361,1288708815,1288699519,1288694058,1288729407,1288713260,1288707255,1288715869,1288719700,1288698188,1288700707,1288721112,1288734834,1288725799,1288734680,1288700306,1288705219,1288711436,1288703443,1288708562,1288705629,1288694420]
+
+
+for (var i=0; i < carIds.length; i++) {
+	cars.push(ES.createObject(Car,carIds[i],i).add());
+}
+//var carBatterys =[146849,130781,210126,190998,203194,168892,145966,151722,115349,213844,217755,223998,161395,128771,185787,174335,124814,178038,125168,139203,193689,147590,187335,150718,223925,198855,138072,174085,140194,193627];
+var carBatterys = [221609,176981,119914,200797,129073,118271,158878,162131,218813,128868,174495,144972,205373,221233,213858,227355,122275,149354,167625,157525,184198,117104,175309,185780,217609,136017,134648,216124,135913,190791];
+
+//			cars.push(ES.createObject(Car,1288720521,0).add());
+//			cars.push(ES.createObject(Car,1288720521,1).add());
+//			cars.push(ES.createObject(Car,1288720521,2).add());
+//			cars.push(ES.createObject(Car,1288720521,3).add());
+//			cars.push(ES.createObject(Car,1288720521,4).add());
+//			cars.push(ES.createObject(Car,1288720521,5).add());
+//			cars.push(ES.createObject(Car,1288720521,6).add());
+//			cars.push(ES.createObject(Car,1288720521,7).add());
+//			cars.push(ES.createObject(Car,1288720521,8).add());
+//			cars.push(ES.createObject(Car,1288720521,9).add());
+//			cars.push(ES.createObject(Car,1288720521,10).add());
+//			cars.push(ES.createObject(Car,1288720521,11).add());
+//			cars.push(ES.createObject(Car,1288720521,12).add());
+//			cars.push(ES.createObject(Car,1288720521,13).add());
+//			cars.push(ES.createObject(Car,1288720521,14).add());
+//			cars.push(ES.createObject(Car,1288720521,15).add());
+//			cars.push(ES.createObject(Car,1288720521,16).add());
+//			cars.push(ES.createObject(Car,1288720521,17).add());
+//			cars.push(ES.createObject(Car,1288720521,18).add());
+//			cars.push(ES.createObject(Car,1288720521,19).add());
+//			cars.push(ES.createObject(Car,1288720521,20).add());
+//			cars.push(ES.createObject(Car,1288720521,21).add());
+//			cars.push(ES.createObject(Car,1288720521,22).add());
+//			cars.push(ES.createObject(Car,1288720521,23).add());
+//			cars.push(ES.createObject(Car,1288720521,24).add());
+//			cars.push(ES.createObject(Car,1288720521,25).add());
+//			cars.push(ES.createObject(Car,1288720521,26).add());
+//			cars.push(ES.createObject(Car,1288720521,27).add());
+//			cars.push(ES.createObject(Car,1288720521,28).add());
+//			cars.push(ES.createObject(Car,1288720521,29).add());
 		
 		
 			//cars[0].changeRoute.push({car:3,shelter:shelters[1]});
@@ -847,7 +802,7 @@ var drone2 = evacSim.createObject(Drone,32.694000,128.840000,1);
 var step_count = 0;
 var total_count= 0;
 var dead_count = 0;
-ES.setTimeStep(1);
+ES.setTimeStep(3);
 
 
 evacSim.eachStep(function () {
@@ -918,6 +873,10 @@ ES.setTimer(function () {
   <a href="#" style="" onclick="drone2.remove();">Remove Drone2</a>
   <a href="#" style="" onclick="evacSim.showNodes();">Show nodes</a>
   <a href="#" style="" onclick="evacSim.showWays();">Show ways</a>
+  <div id="drone-ev-num">
+  0
+  </div>
+  <input type="text" id="drone-ev-num-input" value="10">
 </div>
 <div id="map_canvas"></div>
 

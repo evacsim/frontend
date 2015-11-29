@@ -16,10 +16,13 @@ $t = '';
 //$obj['test'] = 'hoge';
 //$obj['test2'] = 'fuga';
 //$obj['chin'] = 'man';
+//foreach($obj as $key => $value){
+//	$t .= "$key,";
+//}
 foreach($obj as $key => $value){
 //	print "$key , $value\n";
 //	$t .= "$key,$value\n";
-	$t .= "$key,";
+//	$t .= "$key,";
 	$t .= "$value,";
 }
 	$t .= "\n";
