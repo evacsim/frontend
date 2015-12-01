@@ -250,8 +250,8 @@ for(var i=13;i<cars.length;i++){
 //	console.log(passing[0]['car1']);
 //	console.log(passing[0]);
 	for(var i=0;i<cars.length;i++){
-		drone.carsCostRank[i]=cars[i];
-		drone2.carsCostRank[i]=cars[i];
+		drone.rankOrderedCars[i]=cars[i];
+		drone2.rankOrderedCars[i]=cars[i];
 		//cars[i].setCost();
 	}
 	drone.setCost();
@@ -260,8 +260,8 @@ for(var i=13;i<cars.length;i++){
 	drone.evRankUpdate();
 	drone2.evRankUpdate();
 	
-	drone.target=drone.carsCostRank[0];
-	drone2.target=drone2.carsCostRank[0];
+	drone.target=drone.rankOrderedCars[0];
+	drone2.target=drone2.rankOrderedCars[0];
 });
 
 //10クロック後、色変化
@@ -388,8 +388,8 @@ var Car = function () {
 			//removeされたEVがdrone.targetだった場合の処理
 				drone.evRankUpdate();
 				drone2.evRankUpdate();
-				drone.target = drone.carsCostRank[0];
-				drone2.target = drone2.carsCostRank[0];
+				drone.target = drone.rankOrderedCars[0];
+				drone2.target = drone2.rankOrderedCars[0];
 			this.shelter.carNum++;
 			this.shelter.battery += this.battery;
 			if(dead_count == cars.length){
@@ -541,7 +541,7 @@ var Shelter = function(){
 
 var Drone = function () {
 	this.constantMeatCount = 0;
-	this.carsCostRank = [];
+	this.rankOrderedCars = [];
 	this.closedNode = [];
 	this.changeRoute = [];
 	var showLabel = false;
@@ -549,8 +549,7 @@ var Drone = function () {
 	this.refreshLabel = function () {
 		if (showLabel) {
 			label = $("<div></div>")
-console.log(this.carsCost)
-				.html("ターゲットの座標: <br>("+this.target.getLat()+","+this.target.getLon()+")<br>ターゲットとの距離: "+Math.round(ES.calcDistance(this,this.target))+"m"+"<br>ターゲットID"+this.target.myId+"<br>ターゲットコスト"+this.carsCost[this.target.myId])
+				.html("ターゲットの座標: <br>("+this.target.getLat()+","+this.target.getLon()+")<br>ターゲットとの距離: "+Math.round(ES.calcDistance(this,this.target))+"m"+"<br>ターゲットID"+this.target.myId+"<br>ターゲットランク[0]"+this.rankOrderedCars[0].myId)
 				.css("backgroundColor","#ffffff")
 				.css("borderStyle","solid")
 				.css("borderWidth","1px")
@@ -606,22 +605,23 @@ console.log(this.carsCost)
 		}
 */
 //最もコストの高いＥＶをターゲットにする
-//		this.target = this.carsCostRank[0]; 
+//		this.target = this.rankOrderedCars[0]; 
 
 		//this.target = cars[2];
 		//this.setRoute();
 	}
 
 
-	this.carsCost = [];
+	this.rankOrderedCosts = [];
 	this.setCost = function(){
-		for (var i=1; i<cars.length; i++) {
-			if(cars[i].shelter==predict_shelter_rank[0]){
+    var shaleter_rank1 = 0;
+		for (var i=0; i<this.rankOrderedCars.length; i++) {
+			if((this.rankOrderedCars[i].shelter==predict_shelter_rank[0]) && (this.rankOrderedCars[i].getNodeId())){
 				shelter_rank1 = 1;
 			}else{
 				shelter_rank1 = 0;
 			}
-			this.carsCost[i] = shelter_rank1*(cars[i].battery+ES.calcDistance(cars[i],cars[i].shelter)-ES.calcDistance(cars[i],this));
+			this.rankOrderedCosts[i] = shelter_rank1*(this.rankOrderedCars[i].battery+ES.calcDistance(this.rankOrderedCars[i],this.rankOrderedCars[i].shelter)-ES.calcDistance(this.rankOrderedCars[i],this));
 		}
 	};
 
@@ -630,6 +630,7 @@ console.log(this.carsCost)
 	this.move = function () {
 		this.setCost();
 		if(this.target.getNodeId()==null){
+			this.evRankUpdate();
 			this.setRoute();
 		}
 
@@ -645,7 +646,7 @@ console.log(this.carsCost)
 //			console.log(this.constantMeatCount);
 			if(this.constantMeatCount>20){
 			this.evRankUpdate();
-			this.target = this.carsCostRank[0];
+			this.target = this.rankOrderedCars[0];
 			this.constantMeatCount = 0;
 		}
 			if((predict_shelter_rank[0].current_predict_battery - this.target.battery>=predict_shelter_rank[shelters.length-1].current_predict_battery+this.target.battery)&&(drone_evNum<maxDroneEvNum)){
@@ -683,7 +684,7 @@ console.log(this.carsCost)
 		//if (carnum >= 0) {
 		//	cars[carnum].metDrone = true;
 			//this.target = cars[carnum];
-			this.target = this.carsCostRank[0];
+			this.target = this.rankOrderedCars[0];
 			droneTarget=this.target;
 		//} else {
 		//	this.target = shelters[0];
@@ -692,15 +693,19 @@ console.log(this.carsCost)
 	this.evRankUpdate = function(){
 		for(i=1;i<cars.length;i++){
 			for(j=cars.length-1;j>=i;j--){
-				if(this.carsCost[j-1]<this.carsCost[j]){
-					temp = this.carsCostRank[j-1];
-					this.carsCostRank[j-1]=this.carsCostRank[j];
-					this.carsCostRank[j]=temp;
+				if(this.rankOrderedCosts[j-1]<this.rankOrderedCosts[j]){
+					temp = this.rankOrderedCars[j-1];
+					this.rankOrderedCars[j-1]=this.rankOrderedCars[j];
+					this.rankOrderedCars[j]=temp;
+
+					temp = this.rankOrderedCosts[j-1];
+					this.rankOrderedCosts[j-1]=this.rankOrderedCosts[j];
+					this.rankOrderedCosts[j]=temp;
 				}
 			}
 		}
 //console.error('hogehoge')
-//console.log(this.carsCostRank)
+//console.log(this.rankOrderedCars)
 	};
 
 	this.currentShelterRank = function(){
