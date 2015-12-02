@@ -645,7 +645,7 @@ var Drone = function () {
         }
       }
 
-			this.rankOrderedCosts[i] = shelter_rank1*(this.rankOrderedCars[i].battery+ES.calcDistance(this.rankOrderedCars[i],this.rankOrderedCars[i].shelter)-ES.calcDistance(this.rankOrderedCars[i],this)+1000*carDensity);
+			this.rankOrderedCosts[i] = shelter_rank1*(this.rankOrderedCars[i].battery+ES.calcDistance(this.rankOrderedCars[i],this.rankOrderedCars[i].shelter)-ES.calcDistance(this.rankOrderedCars[i],this)+1000*carsDensity);
 		}
 	};
 
