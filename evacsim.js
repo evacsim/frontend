@@ -446,6 +446,7 @@ var evacSim = new (function () {
 
   this.start = function () {
     if ((isInitialized) && (!timer)) {
+      killObjects();
       refreshGMap();
       timer = setInterval(eachStepFunc, timeStep);
     }
