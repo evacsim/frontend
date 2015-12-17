@@ -1,3 +1,4 @@
+//コスト改良
 <!DOCTYPE html>
 <html>
 <head>
@@ -58,7 +59,7 @@ $(function () {
 //海岸線に５台並べて，他の避難所に向かわせるシミュレーション
 var ev_evNum=0;
 var drone_evNum = 0;
-var maxDroneEvNum = 10;
+var maxDroneEvNum = 100;
 var targetShelter1=0;
 var bunsan = 0;
 var heikin = 0;
@@ -77,6 +78,10 @@ var shelter_rank1 = 1;
 var passing = [];
 var temp = 0;
 var deadCarId = 0;
+var waitDensity = 1000/152;
+var waitBattery = 1000/330;
+var waitDistance = 1000/258;
+var droneNum = 6;
 for (var i=0;i<Nx;i++){
 	gridCarNumber[i]=new Array(Ny);
 }
@@ -88,6 +93,8 @@ console.log(Dx)
 console.log(Dy)
 var gridLineX = [];
 var gridLineY = [];
+
+
 	for(var i=0;i<=Nx;i++){
 		var gridLineLatLon = [
 			{lat: gridMinLat, lng: gridMinLon+i*Dx},
@@ -263,7 +270,7 @@ for(var i=13;i<cars.length;i++){
 	}
 	for(var i=0;i<drone.length;i++){
 		drone[i].setCost();
-		console.log(drone[i].rankOrderedCosts);
+//		console.log(drone[i].rankOrderedCosts);
 		drone[i].evRankUpdate();
 
 		drone[i].target=drone[i].rankOrderedCars[0];
@@ -279,6 +286,7 @@ ES.setTimer(function () {
 var Car = function () {
 	this.metDrone = false;
 	this.route = [];
+	this.carsDensity;
 	var showLabel = false;
 	this.shelter;
 	this.cost = -2;
@@ -317,13 +325,26 @@ var Car = function () {
 
 		var minDistance = 100000000;
 //		var nearestShelter = 0;
-		for(var i=0;i<shelters.length;i++){
+//もっとも近い避難所
+/*		for(var i=0;i<shelters.length;i++){
 			if(ES.calcDistance(this,shelters[i])<minDistance){
 			minDistance = ES.calcDistance(this,shelters[i]);
 			this.nearestShelter = shelters[i];
 			}
 		}
-		
+*/
+//割合で避難所決定
+if(this.myId<20){
+	this.nearestShelter = shelters[0];
+}else if(this.myId<23){
+	this.nearestShelter = shelters[1];
+}else{
+	this.nearestShelter = shelters[2];
+}
+
+
+
+
 //		this.nearestShelter = shelters[0];
 		for(var i=0;i<shelters.length;i++){
 			if(this.nearestShelter == shelters[i]){
@@ -401,6 +422,7 @@ var Car = function () {
 			if(dead_count == cars.length){
 //				alert(ev_evNum);
 				var JSONdata = {
+								Drone_length:droneNum,
 								step_count: step_count,
 								total_count: total_count,
 								cars_length: cars.length,
@@ -409,18 +431,18 @@ var Car = function () {
 								carNum2: shelters[2].carNum,
 								bunsan:bunsan
 							}
-					JSONdata['shelters[0].battery']=Math.round(16/180*shelters[0].battery);
-					JSONdata['shelters[1].battery']=Math.round(16/180*shelters[1].battery);
-					JSONdata['shelters[2].battery']=Math.round(16/180*shelters[2].battery);
-					JSONdata['shelters[0].predict_battery']=Math.round(16/180*shelters[0].initial_predict_battery);
-					JSONdata['shelters[1].predict_battery']=Math.round(16/180*shelters[1].initial_predict_battery);
-					JSONdata['shelters[2].predict_battery']=Math.round(16/180*shelters[2].initial_predict_battery);
-					JSONdata['s0']=Math.round(16/180*predict_shelter_rank[0].battery);
-					JSONdata['s1']=Math.round(16/180*predict_shelter_rank[1].battery);
-					JSONdata['s2']=Math.round(16/180*predict_shelter_rank[2].battery);
-					JSONdata['max-min']=Math.round(16/180*((predict_shelter_rank[0].battery)-(predict_shelter_rank[2].battery)));
-					JSONdata['SUMshelterbattery']=Math.round(16/180*((shelters[0].battery)+(shelters[1].battery)+(shelters[2].battery)));
-					JSONdata['date']=60;
+					JSONdata['shelters[0].battery']=Math.round(16/180*shelters[0].battery/1000);
+					JSONdata['shelters[1].battery']=Math.round(16/180*shelters[1].battery/1000);
+					JSONdata['shelters[2].battery']=Math.round(16/180*shelters[2].battery/1000);
+					JSONdata['shelters[0].predict_battery']=Math.round(16/180*shelters[0].initial_predict_battery/1000);
+					JSONdata['shelters[1].predict_battery']=Math.round(16/180*shelters[1].initial_predict_battery/1000);
+					JSONdata['shelters[2].predict_battery']=Math.round(16/180*shelters[2].initial_predict_battery/1000);
+					JSONdata['s0']=Math.round(16/180*predict_shelter_rank[0].battery)/1000;
+					JSONdata['s1']=Math.round(16/180*predict_shelter_rank[1].battery)/1000;
+					JSONdata['s2']=Math.round(16/180*predict_shelter_rank[2].battery)/1000;
+					JSONdata['max-min']=Math.round(16/180*((predict_shelter_rank[0].battery)-(predict_shelter_rank[2].battery))/1000);
+					JSONdata['SUMshelterbattery']=Math.round(16/180*((shelters[0].battery)+(shelters[1].battery)+(shelters[2].battery))/1000);
+					JSONdata['date']=1;
 							
 				$.ajax({
 					type : 'post',
@@ -453,16 +475,17 @@ var Car = function () {
 //			if((ES.calcDistance(this,cars[i])<0)&&(this.myId!=cars[i].myId)){//すれ違い通信なし
 //			if((ES.calcDistance(this,cars[i])<200)&&((predict_shelter_rank[0].current_predict_battery - cars[i].battery)>=(predict_shelter_rank[shelters.length-1].current_predict_battery+cars[i].battery))){
 				if(($.inArray(this.myId,cars[i].sentBy)<0) && (this.changeRoute.length) ){
+				//通信品質・エラー率
 					if(Math.random()<=1.0){
-						alert(cars[i].myId);
-						alert(this.myId);
+//						alert(cars[i].myId);
+//						alert(this.myId);
 //						alert(cars[i].battery);
 						cars[i].changeRoute = cars[i].changeRoute.concat(this.changeRoute);
 						//targetShelter1++;
 						ev_evNum++;
 //						alert((predict_shelter_rank[0].current_predict_battery - cars[i].battery)-(predict_shelter_rank[shelters.length-1].current_predict_battery+cars[i].battery));
 					}
-					alert("ev-ev");
+//					alert("ev-ev");
 					cars[i].sentBy.push(this.myId);
 				
 				/*
@@ -569,12 +592,14 @@ var Drone = function () {
 	this.rankOrderedCars = [];
 	this.closedNode = [];
 	this.changeRoute = [];
+	this.totalDistance = 0;
+	this.totalBattery = 0;
 	var showLabel = true;
 	var label;
 	this.refreshLabel = function () {
 		if (showLabel) {
 			label = $("<div></div>")
-				.html("ターゲットの座標: <br>("+this.target.getLat()+","+this.target.getLon()+")<br>ターゲットとの距離: "+Math.round(ES.calcDistance(this,this.target))+"m"+"<br>ターゲットID"+this.target.myId+"<br>ターゲットランク[0]"+this.rankOrderedCars[0].myId)
+				.html("ターゲットの座標: <br>("+this.target.getLat()+","+this.target.getLon()+")<br>ターゲットとの距離: "+Math.round(ES.calcDistance(this,this.target))+"m"+"<br>ターゲットID"+this.target.myId)
 				.css("backgroundColor","#ffffff")
 				.css("borderStyle","solid")
 				.css("borderWidth","1px")
@@ -640,11 +665,20 @@ var Drone = function () {
 	this.rankOrderedCosts = [];
 	this.setCost = function(){
     var shaleter_rank1 = 0;
-    var carsDensity;
     var x;
     var y;
     var j;
     var k;
+
+//コスト改良
+	this.totalDistance = 0;
+	this.totalBattery = 0;
+//	this.totalDensity = 0;
+	for(var i=0;i<cars.length;i++){
+		this.totalDistance += ES.calcDistance(cars[i],this);
+		this.totalBattery += cars[i].battery;
+	}
+
 		for (var i=0; i<this.rankOrderedCars.length; i++) {
 			if((this.rankOrderedCars[i].shelter==predict_shelter_rank[0]) && (this.rankOrderedCars[i].getNodeId())){
 				shelter_rank1 = 1;
@@ -666,19 +700,36 @@ var Drone = function () {
 	}
 			x = this.rankOrderedCars[i].getLon();
 			y = this.rankOrderedCars[i].getLat();
-      carsDensity = 0;
+      this.rankOrderedCars[i].carsDensity = 0;
       if (x && y) {
         j = Math.floor((x-gridMinLon)/Dx);
         k = Math.floor((y-gridMinLat)/Dy);
-        carsDensity = 0;
+       this.rankOrderedCars[i].carsDensity = 0;
         if ( ((0 < j) && (j < Nx-1)) && ((0 < k) && (k < Ny-1)) ) {
-			    carsDensity = (gridCarNumber[j-1][k-1]+gridCarNumber[j][k-1]+gridCarNumber[j-1][k]+gridCarNumber[j][k])/4;
+			   this.rankOrderedCars[i].carsDensity = (gridCarNumber[j-1][k-1]+gridCarNumber[j][k-1]+gridCarNumber[j-1][k]+gridCarNumber[j][k])/4;
 //        console.log(gridCarNumber[j-1][k-1]);
 		}
-      }
-
-			this.rankOrderedCosts[i] = shelter_rank1*(this.rankOrderedCars[i].battery+ES.calcDistance(this.rankOrderedCars[i],this.rankOrderedCars[i].shelter)+10000/ES.calcDistance(this.rankOrderedCars[i],this)+100*carsDensity);
+	}
+//コスト改良
+	this.totalDistance = 0;
+	this.totalBattery = 0;
+	this.totalDensity = 0;
+	for(var p=0;p<cars.length;p++){
+		this.totalDistance +=1/ES.calcDistance(cars[p],this);
+		this.totalBattery += cars[p].battery;
+		this.totalDensity += this.rankOrderedCars[p].carsDensity;
+	}
+//console.log("testtttttttt")
+//console.log(1/ES.calcDistance(this.rankOrderedCars[0],this)/this.totalDistance)
+//console.log(this.rankOrderedCars[0].battery/this.totalBattery)
+//console.log(this.rankOrderedCars[0].carsDensity/this.totalDensity)
+//console.log(this.rankOrderedCars[0].carsDensity)
+//			this.rankOrderedCosts[i] = shelter_rank1*(this.rankOrderedCars[i].battery+ES.calcDistance(this.rankOrderedCars[i],this.rankOrderedCars[i].shelter)+10000/ES.calcDistance(this.rankOrderedCars[i],this)+100*this.rankOrderedCars[i].carsDensity);
 			//this.rankOrderedCosts[i] = shelter_rank1*(this.rankOrderedCars[i].battery+ES.calcDistance(this.rankOrderedCars[i],this.rankOrderedCars[i].shelter)-ES.calcDistance(this.rankOrderedCars[i],this));
+
+			this.rankOrderedCosts[i] = shelter_rank1*(1/ES.calcDistance(this.rankOrderedCars[i],this)/this.totalDistance*waitDistance);
+
+//			this.rankOrderedCosts[i] = shelter_rank1*(this.rankOrderedCars[i].battery/this.totalBattery*waitBattery+1/ES.calcDistance(this.rankOrderedCars[i],this)/this.totalDistance*waitDistance+this.rankOrderedCars[i].carsDensity/this.totalDensity*waitDensity);
 		}
 	};
 
@@ -686,7 +737,7 @@ var Drone = function () {
 	var metF2 = 1;
 	this.move = function () {
 		this.setCost();
-//		console.log(this.rankOrderedCosts);
+//		console.log(this.rankOrderedCosts[0]);
 //		alert("hai");
 		if(this.target.getNodeId()==null){
 			this.evRankUpdate();
@@ -721,6 +772,7 @@ var Drone = function () {
 					drone_evNum++;
 					$('#drone-ev-num').text(drone_evNum);
 //					alert("drone-ev");
+//					alert(this.target.shelter.initial_predict_battery);
 //					this.remove();
 					for(var i=0;i<drone.length;i++){
 //						console.log(drone[i].rankOrderedCosts);
@@ -823,8 +875,8 @@ var shelters = [];
 //var carIds = [1288715527,1288704579,1288708230,1288732464,1288720053,1288719078,1288705940,1288731577,1288713094,1288702468,1288700426,1288722532,1288705508,1288701767,1288729822,1288708564,1288700674,1288707896,1288717573,1288708218,1288734791,1288719109,1288703308,1288702861,1288719267,1288704646,1288723809,1288705976,1288704074,1288713043]
 //var carIds = [1288718504,1288718059,1288732608,1288700829,1288713788,1288719012,1288700719,1288719573,1288699685,1288700759,1288731380,1288733664,1288731837,1288714371,1288703937,1288697070,1288709070,1288733851,1288731832,1288727481,1288700466,1288708851,1288732956,1288708882,1288707450,1288732811,1288724956,1288700843,1288723534,1288733750]
 //var carIds = [1288703209,1288722506,1288734156,1288724959,1288721841,1288715527,1288696013,1288718934,1288732361,1288708815,1288699519,1288694058,1288729407,1288713260,1288707255,1288715869,1288719700,1288698188,1288700707,1288721112,1288734834,1288725799,1288734680,1288700306,1288705219,1288711436,1288703443,1288708562,1288705629,1288694420]
-var carIds = [1288719460,1288708159,1288698424,1288730096,1288714254,1288728386,1288702742,1288722502,1288706039,1288706317,1288695158,1288699712,1288730801,1288734758,1288703055,1288713689,1288713311,1288700982,1288708839,1288735511,1288704579,1288723553,1288717038,1288694203,1288703024,1288694668,1288698339,1288696741,1288727131,1288713076,1288728918,1288713002,1288732370,1288720684,1288733747,1288723608,1288706484,1288711292,1288732608,1288713231,1288727220,1288734157,1288700676,1288717538,1288730724,1288735005,1288720394,1288701779,1288712643,1288705332,1288704508,1288712184,1288717004,1288723643,1288735160,1288702596,1288720500,1288705038,1288732802,1288728359]
-//var carIds = [1288695878,1288723840,1288694501,1288694940,1288721519,1288696216,1288720094,1288695982,1288732704,1288735573,1288701390,1288700557,1288717018,1288725782,1288726522,1288712326,1288708182,1288729832,1288727433,1288701074,1288708586,1288694562,1288706684,1288703944,1288695092,1288695253,1288722657,1288708519,1288712977,1288696226,1288730377,1288732077,1288716368,1288708255,1288694122,1288704968,1288732802,1288718980,1288722310,2707936876,1288715228,1288717856,1288713930,1288720806,1288700785,1288719399,1288734382,1288731298,1288712942,1288698105,1288721223,1288714768,1288704359,1288723014,1288720298,1288732038,1288703776,1288711406,1288711706,1288718938];
+//var carIds = [1288719460,1288708159,1288698424,1288730096,1288714254,1288728386,1288702742,1288722502,1288706039,1288706317,1288695158,1288699712,1288730801,1288734758,1288703055,1288713689,1288713311,1288700982,1288708839,1288735511,1288704579,1288723553,1288717038,1288694203,1288703024,1288694668,1288698339,1288696741,1288727131,1288713076,1288728918,1288713002,1288732370,1288720684,1288733747,1288723608,1288706484,1288711292,1288732608,1288713231,1288727220,1288734157,1288700676,1288717538,1288730724,1288735005,1288720394,1288701779,1288712643,1288705332,1288704508,1288712184,1288717004,1288723643,1288735160,1288702596,1288720500,1288705038,1288732802,1288728359]
+var carIds = [1288695878,1288723840,1288694501,1288694940,1288721519,1288696216,1288720094,1288695982,1288732704,1288735573,1288701390,1288700557,1288717018,1288725782,1288726522,1288712326,1288708182,1288729832,1288727433,1288701074,1288708586,1288694562,1288706684,1288703944,1288695092,1288695253,1288722657,1288708519,1288712977,1288696226,1288730377,1288732077,1288716368,1288708255,1288694122,1288704968,1288732802,1288718980,1288722310,2707936876,1288715228,1288717856,1288713930,1288720806,1288700785,1288719399,1288734382,1288731298,1288712942,1288698105,1288721223,1288714768,1288704359,1288698378,1288720298,1288732038,1288703776,1288711406,1288711706,1288718938];
 
 
 
@@ -878,9 +930,9 @@ var drone =[];
 drone[0] = evacSim.createObject(Drone,32.664832,128.856881,0);
 drone[1] = evacSim.createObject(Drone,32.694000,128.840000,1);
 drone[2] = evacSim.createObject(Drone,32.690000,128.840000,2);
-//drone[3] = evacSim.createObject(Drone,32.670000,128.840000,3);
-//drone[4] = evacSim.createObject(Drone,32.670000,128.840000,4);
-//drone[5] = evacSim.createObject(Drone,32.670000,128.840000,5);
+drone[3] = evacSim.createObject(Drone,32.670000,128.840000,3);
+drone[4] = evacSim.createObject(Drone,32.670000,128.840000,4);
+drone[5] = evacSim.createObject(Drone,32.670000,128.840000,5);
 
 var step_count = 0;
 var total_count= 0;
@@ -936,7 +988,9 @@ function calcGridCarNum() {
 		}
 	}
 }
-
+function droneMinus() {
+	droneNum -=1;
+}
 
 ES.setTimer(function () {
 /*	ES.createObject(Stopper,1288734899);
@@ -957,15 +1011,18 @@ ES.setTimer(function () {
 -->
 <div style="position: absolute; width: 100%; height: 30px; background: #000066; z-index: 2;">
   <a href="#" style="" onclick="ES.start();">Start</a>
-  <a href="#" style="" onclick="drone[0].remove();">Remove Drone</a>
-  <a href="#" style="" onclick="drone[1].remove();">Remove Drone2</a>
-  <a href="#" style="" onclick="drone[2].remove();">Remove Drone3</a>
+  <a href="#" style="" onclick="drone[0].remove(); droneMinus(); console.log(droneNum);">Remove Drone</a>
+  <a href="#" style="" onclick="drone[1].remove(); droneMinus(); console.log(droneNum)">Remove Drone2</a>
+  <a href="#" style="" onclick="drone[2].remove(); droneMinus(); console.log(droneNum)">Remove Drone3</a>
+  <a href="#" style="" onclick="drone[3].remove(); droneMinus(); console.log(droneNum)">Remove Drone4</a>
+  <a href="#" style="" onclick="drone[4].remove(); droneMinus(); console.log(droneNum)">Remove Drone5</a>
+  <a href="#" style="" onclick="drone[5].remove(); droneMinus(); console.log(droneNum)">Remove Drone6</a>
   <a href="#" style="" onclick="evacSim.showNodes();">Show nodes</a>
   <a href="#" style="" onclick="evacSim.showWays();">Show ways</a>
   <div id="drone-ev-num">
   0
   </div>
-  <input type="text" id="drone-ev-num-input" value="10">
+  <input type="text" id="drone-ev-num-input" value="100">
 </div>
 <div id="map_canvas"></div>
 
