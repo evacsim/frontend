@@ -316,7 +316,7 @@ var Car = function () {
 	this.refreshLabel = function () {
 		if (showLabel) {
 			label = $("<div></div>")
-				.html("ドローンとの距離: "+Math.round(ES.calcDistance(this,drone[0]))+"m"+"<br>myId: "+this.myId+"<br>車密度"+Math.round(this.maxBattery) +"<br>cars.battery"+Math.round(this.battery)+"<br>避難所との距離"+Math.round(ES.calcDistance(this,this.shelter))+"<br>コスト(drone1)"+Math.round(this.cost))
+				.html("ドローンとの距離: "+Math.round(ES.calcDistance(this,drone[0]))+"m"+"<br>myId: "+this.myId+"<br>車密度"+Math.round(this.maxBattery) +"<br>cars.battery"+Math.round(this.battery)+"<br>避難所との距離"+Math.round(ES.calcDistance(this,this.shelter))+"<br>シェルター"+this.shelter.myId)
 				//.html("ドローンとの距離: "+Math.round(ES.calcDistance(this,drone[0]))+"m<br>changeRoute"+(this.changeRoute.length? this.changeRoute[0].toString(): "")+"<br>myId"+this.myId )
 				.css("backgroundColor","#ffffff")
 				.css("borderStyle","solid")
@@ -498,23 +498,23 @@ if(this.myId<20){
 //			if((ES.calcDistance(this,cars[i])<200)&&((predict_shelter_rank[0].current_predict_battery - cars[i].battery)>=(predict_shelter_rank[shelters.length-1].current_predict_battery+cars[i].battery))){
 				if(($.inArray(this.myId,cars[i].sentBy)<0) && (this.changeRoute.length) ){
 				//通信品質・エラー率
-					if((Math.random()<=1.0)){
-//						if(cars[i].shelter == predict_shelter_rank[1]){
-				alert("1111sjdklf");
-				alert(predict_shelter_rank[1].current_predict_battery);
-				alert(aveSheltersBattery);
+//					if((Math.random()<=1.0)){
+						if(cars[i].shelter == predict_shelter_rank[1]){
+//				alert(predict_shelter_rank[1].current_predict_battery);
+//				alert(aveSheltersBattery+","+cars[i].shelter.myId);
+				
 							if(predict_shelter_rank[1].current_predict_battery > aveSheltersBattery){
-				alert("22222222sjdklf");
 //								alert(this.myId);
 //								alert(cars[i].battery);
 								cars[i].changeRoute = cars[i].changeRoute.concat(this.changeRoute);
+								cars[i].shelter = predict_shelter_rank[shelters.length-1];
 								ev_evNum++;
 							}
 						}else{
-				alert("3333333333sjdklf");
 //						alert(this.myId);
 //						alert(cars[i].battery);
 						cars[i].changeRoute = cars[i].changeRoute.concat(this.changeRoute);
+								cars[i].shelter = predict_shelter_rank[shelters.length-1];
 						//targetShelter1++;
 						ev_evNum++;
 //						alert((predict_shelter_rank[0].current_predict_battery - cars[i].battery)-(predict_shelter_rank[shelters.length-1].current_predict_battery+cars[i].battery));
@@ -597,10 +597,10 @@ var Shelter = function(){
 	this.battery = 0;
 	this.initial_predict_battery = 0;
 	this.current_predict_battery = 0;
-	this.init = function(shelterId){
+	this.init = function(shelterId,myId){
 		this.setNodeId(shelterId)
 		this.setIcon("./../icons/shelter.svg",30,30);
-	
+		this.myId = myId;
 	
 	};
 
@@ -609,7 +609,7 @@ var Shelter = function(){
 	this.refreshLabel = function () {
 		if (showLabel) {
 			label = $("<div></div>")
-				.html("避難完了EV: "+this.carNum+"台<br>バッテリー量:"+Math.round(16/180*this.battery)+"Wh<br>予想バッテリー量:"+Math.round(16/180*this.initial_predict_battery)+"Wh<br>current:"+Math.round(16/180*this.current_predict_battery)+"Wh")
+				.html("避難完了EV: "+this.carNum+"台<br>バッテリー量:"+Math.round(16/180*this.battery)+"Wh<br>予想バッテリー量:"+Math.round(16/180*this.initial_predict_battery)+"Wh<br>current:"+Math.round(16/180*this.current_predict_battery)+"Wh<br>myId"+this.myId)
 				.css("backgroundColor","#ffffff")
 				.css("borderStyle","solid")
 				.css("borderWidth","1px")
@@ -861,7 +861,8 @@ var Drone = function () {
 
 	this.currentShelterRank = function(){
 		for(var i=0;i<shelters.length;i++){
-			shelters[i].current_predict_battery = shelters[i].battery;
+//			shelters[i].current_predict_battery = shelters[i].battery;
+			shelters[i].current_predict_battery = 0;
 		}
 		for(var j=0;j<cars.length;j++){
 			for(var i=0;i<shelters.length;i++){
@@ -893,11 +894,11 @@ console.log('stopper!')
 
 var cars = [];
 var shelters = [];
-	shelters.push(ES.createObject(Shelter,1288699152).add());
+	shelters.push(ES.createObject(Shelter,1288699152,0).add());
 	//shelters.push(ES.createObject(Shelter,1288696689).add());
 	//shelters.push(ES.createObject(Shelter,1288732567).add());
-	shelters.push(ES.createObject(Shelter,1288726192).add());
-	shelters.push(ES.createObject(Shelter,1288704180).add());
+	shelters.push(ES.createObject(Shelter,1288726192,1).add());
+	shelters.push(ES.createObject(Shelter,1288704180,2).add());
 
 //var carIds = [1288731394,1288732985,1288730578,1288734101,1288701562,1288733752,1288728492,1288715100,1288731587,1288696642,1288700575,1288703633,1288705357,1288713552,1288726606,1288714019,1288720648,1288704164,1288728905,1288697791,1288726931,1288721860,1288704310,1288727411,1288699185,1288711445,1288702535,1288702618,1288734591,1288731619];
 //var carIds = [1288714981,1288699743,1288695189,1288719154,1288711292,1288719502,1288726945,1288706551,1288720091,1288721891,1288727861,1288726846,1288715210,1288730736,1288696782,1288732157,1288712511,1288722885,1288694784,1288735309,1288718335,1288718875,1288705161,1288716274,1288723840,1288716195,2707936858,1288714435,1288706165,1288694393];
