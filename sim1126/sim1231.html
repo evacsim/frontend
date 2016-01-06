@@ -464,7 +464,7 @@ if(this.myId<20){
 					JSONdata['s2']=Math.round(16/180*predict_shelter_rank[2].battery)/1000;
 					JSONdata['max-min']=Math.round(16/180*((predict_shelter_rank[0].battery)-(predict_shelter_rank[2].battery))/1000);
 					JSONdata['SUMshelterbattery']=Math.round(16/180*((shelters[0].battery)+(shelters[1].battery)+(shelters[2].battery))/1000);
-					JSONdata['date']=1;
+					JSONdata['date']=1231;
 							
 				$.ajax({
 					type : 'post',
@@ -759,9 +759,11 @@ var Drone = function () {
 //console.log(this.rankOrderedCars[0].carsDensity/this.totalDensity)
 //console.log(this.rankOrderedCars[0].carsDensity)
 //			this.rankOrderedCosts[i] = shelter_rank1*(this.rankOrderedCars[i].battery+ES.calcDistance(this.rankOrderedCars[i],this.rankOrderedCars[i].shelter)+10000/ES.calcDistance(this.rankOrderedCars[i],this)+100*this.rankOrderedCars[i].carsDensity);
-			//this.rankOrderedCosts[i] = shelter_rank1*(this.rankOrderedCars[i].battery+ES.calcDistance(this.rankOrderedCars[i],this.rankOrderedCars[i].shelter)-ES.calcDistance(this.rankOrderedCars[i],this));
+//			this.rankOrderedCosts[i] = shelter_rank1*(this.rankOrderedCars[i].battery+ES.calcDistance(this.rankOrderedCars[i],this.rankOrderedCars[i].shelter)-ES.calcDistance(this.rankOrderedCars[i],this));
 
-			this.rankOrderedCosts[i] = shelter_rank1*(1/ES.calcDistance(this.rankOrderedCars[i],this)/this.totalDistance*waitDistance);
+//			this.rankOrderedCosts[i] = shelter_rank1*(1/ES.calcDistance(this.rankOrderedCars[i],this)/this.totalDistance*waitDistance);
+			this.rankOrderedCosts[i] = shelter_rank1*(this.rankOrderedCars[i].battery/this.totalBattery);
+//			this.rankOrderedCosts[i] = shelter_rank1*(this.rankOrderedCars[i].carsDensity/this.totalDensity);
 
 //			this.rankOrderedCosts[i] = shelter_rank1*(this.rankOrderedCars[i].battery/this.totalBattery*waitBattery+1/ES.calcDistance(this.rankOrderedCars[i],this)/this.totalDistance*waitDistance+this.rankOrderedCars[i].carsDensity/this.totalDensity*waitDensity);
 		}
