@@ -87,7 +87,8 @@ for (var i=0;i<Nx;i++){
 }
 var droneTarget = 0;
 var aveSheltersBattery = 0;
-
+var startTime = 0;
+//var finishTime = 0;
 
 var v2vDistance = 0;
 $(function () {
@@ -442,6 +443,10 @@ if(this.myId<20){
 			this.shelter.carNum++;
 			this.shelter.battery += this.battery;
 			if(dead_count == cars.length){
+				var finishTime = new Date();
+				var runTime = finishTime-startTime;
+//				alert (runTime);
+				
 //				alert(ev_evNum);
 				var JSONdata = {
 								Drone_length:droneNum,
@@ -465,6 +470,7 @@ if(this.myId<20){
 					JSONdata['max-min']=Math.round(16/180*((predict_shelter_rank[0].battery)-(predict_shelter_rank[2].battery))/1000);
 					JSONdata['SUMshelterbattery']=Math.round(16/180*((shelters[0].battery)+(shelters[1].battery)+(shelters[2].battery))/1000);
 					JSONdata['date']=600;
+					JSONdata['runTime']=runTime;
 							
 				$.ajax({
 					type : 'post',
@@ -1049,6 +1055,10 @@ ES.setTimer(function () {
 	console.log("closed!")
 */
 },10);
+function getStartTime() {
+	startTime = new Date();
+//	alert(startTime.getHours());
+}
 
     </script>
 </head>
@@ -1059,7 +1069,7 @@ ES.setTimer(function () {
 <button style="position: absolute;left: 400px; width: 100px; height: 100px; background-color: #ffcccc; z-index: 1000; display: block;" onclick="evacSim.showNodes();">ways</button>
 -->
 <div style="position: absolute; width: 100%; height: 30px; background: #000066; z-index: 2;">
-  <a href="#" style="" onclick="ES.start();">Start</a>
+  <a href="#" style="" onclick="ES.start(),getStartTime();">Start</a>
   <a href="#" style="font-size: 0.5em" onclick="drone[0].remove(); droneMinus(); console.log(droneNum);">Remove Drone</a>
   <a href="#" style="font-size: 0.5em" onclick="drone[1].remove(); droneMinus(); console.log(droneNum)">Remove Drone2</a>
   <a href="#" style="font-size: 0.5em" onclick="drone[2].remove(); droneMinus(); console.log(droneNum)">Remove Drone3</a>
